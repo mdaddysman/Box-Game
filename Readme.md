@@ -1,6 +1,6 @@
-# SDL Learning
+# Box Game
 
-An example git for learning SDL 2.0 with Visual C++ 2013
+A simple game for learning SDL 2.0 with Visual C++ 2013
 
 Requires in c:\sdl2: 
 - SDL2

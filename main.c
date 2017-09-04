@@ -257,7 +257,7 @@ int main(int argc, char* args[])
 	gameover_rect.x = playarea.x + playarea.w / 2 - w / 2;
 	gameover_rect.y = playarea.y + playarea.h / 2 - h / 2;
 
-	tvictory = makeTextTexture(renderer, gLargeFont, "VICTORY", text_color, bg_color, BLENDED);
+	tvictory = makeTextTexture(renderer, gLargeFont, "Level Complete!", text_color, bg_color, BLENDED);
 	SDL_QueryTexture(tvictory, NULL, NULL, &w, &h);
 	victory_rect.w = w;
 	victory_rect.h = h;

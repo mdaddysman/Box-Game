@@ -17,6 +17,8 @@ The following dll's must be copied to the Debug folder:
 
 Resources: 
 - `Music/Game1.mp3`
+- `Sounds/explosion.wav`
 - `Sounds/fail.wav`
+- `Sounds/success.wav`
 - `Fonts/RipeApricots.ttf`
 

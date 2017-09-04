@@ -8,22 +8,86 @@
 #include "main.h"
 
 //global variables 
-int gLeftEdge, gRightEdge, gTopEdge, gBottomEdge;
-int gRandCount;
+int gRandCount; // number of times the random number generator has been called 
+int gLevel, gHitPoints, gBoostPool; //the current Level, Hit Points, and BoostPool of the player 
+int gLeftEdge, gRightEdge, gTopEdge, gBottomEdge; //define the edges of the playfield for bounds checking 
+Mix_Music *gMusic;
+TTF_Font *gSmallFont, *gLargeFont;
+SDL_Texture *gtLevelNumber, *gtHitPoints, *gtBoost;
+SDL_Rect gLevel_rect, gHitPoints_rect, gBoost_rect, gBoostmeter_rect, gBoostdeplet_rect, gPlayerBox;
+struct AIBox gGoalBox, gEnemyBox;
+
+
+void newGame(SDL_Renderer *r, SDL_Rect *playarea)
+{
+	char buffer[100];
+	int w, h;
+	int edgebuffer = 10; //pixel buffer from the edge
+	SDL_Color text_color = { 255, 255, 255 };
+	SDL_Color bg_color = { 0, 0, 0 };
+
+	gBoostPool = MAX_BOOST;
+
+	sprintf_s(buffer, sizeof(buffer), "Level: %d", gLevel);
+	gtLevelNumber = makeTextTexture(r, gSmallFont, buffer, text_color, bg_color, SHADED);
+	SDL_QueryTexture(gtLevelNumber, NULL, NULL, &w, &h);
+	gLevel_rect.x = PLAYAREA_PADDING;
+	gLevel_rect.y = PLAYAREA_PADDING;
+	gLevel_rect.w = w;
+	gLevel_rect.h = h;
+
+	sprintf_s(buffer, sizeof(buffer), "Hit Points: %d", gHitPoints);
+	gtHitPoints = makeTextTexture(r, gSmallFont, buffer, text_color, bg_color, SHADED);
+	SDL_QueryTexture(gtHitPoints, NULL, NULL, &w, &h);
+	gHitPoints_rect.x = PLAYAREA_PADDING + gLevel_rect.w + 20;
+	gHitPoints_rect.y = PLAYAREA_PADDING;
+	gHitPoints_rect.w = w;
+	gHitPoints_rect.h = h;
+
+	gtBoost = makeTextTexture(r, gSmallFont, "Boost:", text_color, bg_color, SHADED);
+	SDL_QueryTexture(gtBoost, NULL, NULL, &w, &h);
+	gBoost_rect.x = gHitPoints_rect.x + gHitPoints_rect.w + 20;
+	gBoost_rect.y = PLAYAREA_PADDING;
+	gBoost_rect.w = w;
+	gBoost_rect.h = h;
+
+	gBoostmeter_rect.x = gBoost_rect.x + gBoost_rect.w + 5;
+	gBoostmeter_rect.y = PLAYAREA_PADDING;
+	gBoostmeter_rect.w = 206;
+	gBoostmeter_rect.h = gBoost_rect.h - 5;
+
+	gBoostdeplet_rect.y = gBoostmeter_rect.y + 3;
+	gBoostdeplet_rect.h = gBoostmeter_rect.h - 6;
+	gBoostdeplet_rect.x = gBoostmeter_rect.x; //just to initalize 
+	gBoostdeplet_rect.w = gBoostmeter_rect.w; //just to initalize 
+
+	gPlayerBox.x = rnd(playarea->w - 2 * edgebuffer) + playarea->x + edgebuffer;
+	gPlayerBox.y = rnd(playarea->h - 2 * edgebuffer) + playarea->y + edgebuffer;
+
+
+	gGoalBox.x = rnd(playarea->w - 2 * edgebuffer) + playarea->x + edgebuffer;
+	gGoalBox.y = rnd(playarea->h - 2 * edgebuffer) + playarea->y + edgebuffer;
+	gGoalBox.direction = rnd(numMoveDirection);
+
+	gEnemyBox.x = rnd(playarea->w - 2 * edgebuffer) + playarea->x + edgebuffer;
+	gEnemyBox.y = rnd(playarea->h - 2 * edgebuffer) + playarea->y + edgebuffer;
+	gEnemyBox.direction = rnd(numMoveDirection);
+
+	Mix_PlayMusic(gMusic, -1);
+}
 
 int main(int argc, char* args[])
 {
 	SDL_Window *window = NULL;
 	SDL_Renderer *renderer = NULL;
-	Mix_Music *music = NULL;
+	
 	Mix_Chunk *wall = NULL;
 	Mix_Chunk *death = NULL; 
-	TTF_Font *font = NULL;
-	TTF_Font *largefont = NULL;
-	SDL_Texture *tlevel_number = NULL;
-	SDL_Texture *thit_points = NULL;
-	SDL_Texture *tboost = NULL;
+	Mix_Chunk *win = NULL;
+	
 	SDL_Texture *tgameover = NULL;
+	SDL_Texture *tvictory = NULL;
+	SDL_Texture *tcontinue = NULL;
 
 	char buffer[100];
 	int quit = 0;
@@ -33,25 +97,13 @@ int main(int argc, char* args[])
 	short int inv_flash_count = 0;
 	short int inv_draw = 0; 
 	short int gameover = 0;
+	short int victory = 0;
 	int inv_count = 0; 
-	int level = 1; 
-	int hit_points = 3;
-	int boost_pool = MAX_BOOST;
+
 	SDL_Event e;
 	enum BoxColors playercolor = WHITE;
-	SDL_Rect playerbox = {
-		200,
-		200,
-		10,
-		10,
-	};
-	SDL_Rect tempbox = {
-		200,
-		200,
-		10,
-		10,
-	};
-	struct AIBox goalbox, enemybox;
+
+	SDL_Rect tempbox = {0,0,0,0};
 	SDL_Rect border = {
 		PLAYAREA_PADDING,
 		SCOREBAR_HEIGHT + PLAYAREA_PADDING,
@@ -64,30 +116,47 @@ int main(int argc, char* args[])
 		SCREEN_WIDTH - 2 * PLAYAREA_PADDING - 2 * PLAYAREA_BORDER,
 		SCREEN_HEIGHT - SCOREBAR_HEIGHT - 2 * PLAYAREA_PADDING - 2 * PLAYAREA_BORDER
 	};
-	int movespeed = 1; //pixels moved per frame 
+	
 	SDL_Color text_color = { 255, 255, 255 };
 	SDL_Color bg_color = { 0, 0, 0 };
-	SDL_Rect level_rect, hitpoints_rect, boost_rect, boostmeter_rect, boostdeplet_rect, gameover_rect;
+	SDL_Rect gameover_rect, victory_rect, continue_rect;
 	int w, h;
+
+	//initalize global variables
+	gMusic = NULL;
+	gSmallFont = NULL;
+	gLargeFont = NULL;
+	gtLevelNumber = NULL;
+	gtHitPoints = NULL;
+	gtBoost = NULL;
+	gLevel = 1;
+	gHitPoints = 3;
+	gBoostPool = MAX_BOOST;
+
+	gPlayerBox.x = 200;
+	gPlayerBox.y = 200;
+	gPlayerBox.w = 10;
+	gPlayerBox.h = 10;
 
 	gLeftEdge = playarea.x;
 	gTopEdge = playarea.y;
-	gRightEdge = playarea.x + playarea.w - playerbox.w;
-	gBottomEdge = playarea.y + playarea.h - playerbox.h;
+	gRightEdge = playarea.x + playarea.w - gPlayerBox.w;
+	gBottomEdge = playarea.y + playarea.h - gPlayerBox.h;
+	
+	gGoalBox.x = 200;
+	gGoalBox.y = 200;
+	gGoalBox.w = 10;
+	gGoalBox.h = 10;
+	gGoalBox.direction = NORTH;
+	gGoalBox.rand_direction = 1;
 
-	goalbox.x = 200;
-	goalbox.y = 200;
-	goalbox.w = 10;
-	goalbox.h = 10;
-	goalbox.direction = NORTH;
-	goalbox.rand_direction = 1;
-
-	enemybox.x = 200;
-	enemybox.y = 200;
-	enemybox.w = 10;
-	enemybox.h = 10;
-	enemybox.direction = NORTH;
-	enemybox.rand_direction = 1;
+	gEnemyBox.x = 200;
+	gEnemyBox.y = 200;
+	gEnemyBox.w = 10;
+	gEnemyBox.h = 10;
+	gEnemyBox.direction = NORTH;
+	gEnemyBox.rand_direction = 1;
+	//end initalize global variables
 
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0)
 	{
@@ -134,8 +203,8 @@ int main(int argc, char* args[])
 		return(0);
 	}
 
-	font = TTF_OpenFont(FONT_FILE, 36);
-	if (font == NULL)
+	gSmallFont = TTF_OpenFont(FONT_FILE, 36);
+	if (gSmallFont == NULL)
 	{
 		printf("Font could not be loaded Error:%s\n", SDL_GetError());
 		SDL_DestroyRenderer(renderer);
@@ -146,8 +215,8 @@ int main(int argc, char* args[])
 		return(0);
 	}
 
-	largefont = TTF_OpenFont(FONT_FILE, 144);
-	if (font == NULL)
+	gLargeFont = TTF_OpenFont(FONT_FILE, 144);
+	if (gLargeFont == NULL)
 	{
 		printf("Large font could not be loaded Error:%s\n", SDL_GetError());
 		SDL_DestroyRenderer(renderer);
@@ -161,60 +230,33 @@ int main(int argc, char* args[])
 	seedrnd();
 	
 	Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048);
-	music = Mix_LoadMUS(GAME_MUSIC);
+	gMusic = Mix_LoadMUS(GAME_MUSIC);
 	wall = Mix_LoadWAV(WALL_SOUND);
 	death = Mix_LoadWAV(DEATH_SOUND);
-	Mix_PlayMusic(music, -1);
-	sprintf_s(buffer,sizeof(buffer), "Level: %d", level);
-	tlevel_number = makeTextTexture(renderer, font, buffer, text_color, bg_color,SHADED);
-	SDL_QueryTexture(tlevel_number, NULL, NULL, &w, &h);
-	level_rect.x = PLAYAREA_PADDING;
-	level_rect.y = PLAYAREA_PADDING;
-	level_rect.w = w;
-	level_rect.h = h;
+	win = Mix_LoadWAV(WIN_SOUND);
 
-	sprintf_s(buffer, sizeof(buffer), "Hit Points: %d", hit_points);
-	thit_points = makeTextTexture(renderer, font, buffer, text_color, bg_color,SHADED);
-	SDL_QueryTexture(thit_points, NULL, NULL, &w, &h);
-	hitpoints_rect.x = PLAYAREA_PADDING + level_rect.w + 20;
-	hitpoints_rect.y = PLAYAREA_PADDING;
-	hitpoints_rect.w = w;
-	hitpoints_rect.h = h;
-
-	tboost = makeTextTexture(renderer, font, "Boost:", text_color, bg_color,SHADED);
-	SDL_QueryTexture(tboost, NULL, NULL, &w, &h);
-	boost_rect.x = hitpoints_rect.x + hitpoints_rect.w + 20;
-	boost_rect.y = PLAYAREA_PADDING;
-	boost_rect.w = w;
-	boost_rect.h = h;
-
-	boostmeter_rect.x = boost_rect.x + boost_rect.w + 5;
-	boostmeter_rect.y = PLAYAREA_PADDING;
-	boostmeter_rect.w = 206;
-	boostmeter_rect.h = boost_rect.h - 5;
-
-	boostdeplet_rect.y = boostmeter_rect.y + 3;
-	boostdeplet_rect.h = boostmeter_rect.h - 6;
-	boostdeplet_rect.x = boostmeter_rect.x; //just to initalize 
-	boostdeplet_rect.w = boostmeter_rect.w; //just to initalize 
-
-	tgameover = makeTextTexture(renderer, largefont, "GAME OVER", text_color, bg_color,BLENDED);
+	tgameover = makeTextTexture(renderer, gLargeFont, "GAME OVER", text_color, bg_color, BLENDED);
 	SDL_QueryTexture(tgameover, NULL, NULL, &w, &h);
 	gameover_rect.w = w;
 	gameover_rect.h = h;
 	gameover_rect.x = playarea.x + playarea.w / 2 - w / 2;
 	gameover_rect.y = playarea.y + playarea.h / 2 - h / 2;
-	
-	playerbox.x = rnd(playarea.w-20) + playarea.x + 10; //10 pixel buffer from the edge 
-	playerbox.y = rnd(playarea.h-20) + playarea.y + 10;
-	
-	goalbox.x = rnd(playarea.w-20) + playarea.x + 10;
-	goalbox.y = rnd(playarea.h-20) + playarea.y + 10;
-	goalbox.direction = rnd(numMoveDirection);
 
-	enemybox.x = rnd(playarea.w-20) + playarea.x + 10;
-	enemybox.y = rnd(playarea.h-20) + playarea.y + 10;
-	enemybox.direction = rnd(numMoveDirection);
+	tvictory = makeTextTexture(renderer, gLargeFont, "VICTORY", text_color, bg_color, BLENDED);
+	SDL_QueryTexture(tvictory, NULL, NULL, &w, &h);
+	victory_rect.w = w;
+	victory_rect.h = h;
+	victory_rect.x = playarea.x + playarea.w / 2 - w / 2;
+	victory_rect.y = playarea.y + playarea.h / 2 - h / 2;
+
+	tcontinue = makeTextTexture(renderer, gSmallFont, "Press ENTER to continue", text_color, bg_color, BLENDED);
+	SDL_QueryTexture(tcontinue, NULL, NULL, &w, &h);
+	continue_rect.w = w;
+	continue_rect.h = h;
+	continue_rect.x = playarea.x + playarea.w / 2 - w / 2;
+	continue_rect.y = playarea.y + playarea.h / 2 - h / 2;
+		
+	newGame(renderer,&playarea); //start to configure a new game 
 
 	while (quit == 0)
 	{
@@ -223,92 +265,81 @@ int main(int argc, char* args[])
 			if (e.type == SDL_QUIT)
 				quit = 1;
 		}
-		isedgehit = 0;
-		movespeed = 1;
+		
 
 		const Uint8 *currentKeyStates = SDL_GetKeyboardState(NULL);
 
-		if (gameover == 0)
+		if (gameover == 0 && victory == 0)
 		{
-			if (currentKeyStates[SDL_SCANCODE_LCTRL] || currentKeyStates[SDL_SCANCODE_RCTRL])
-			{
-				if (boost_pool > 0)
-					movespeed = 3;
-
-				boost_pool = boost_pool - BOOST_DOWN;
-				if (boost_pool < 0)
-					boost_pool = 0;
-			}
-			else
-			{
-				boost_pool = boost_pool + BOOST_RECHARGE;
-				if (boost_pool > MAX_BOOST)
-					boost_pool = MAX_BOOST;
-			}
-
-			if (currentKeyStates[SDL_SCANCODE_UP] && !currentKeyStates[SDL_SCANCODE_DOWN])
-				playerbox.y = playerbox.y - movespeed;
-			else if (currentKeyStates[SDL_SCANCODE_DOWN] && !currentKeyStates[SDL_SCANCODE_UP])
-				playerbox.y = playerbox.y + movespeed;
-			if (currentKeyStates[SDL_SCANCODE_LEFT] && !currentKeyStates[SDL_SCANCODE_RIGHT])
-				playerbox.x = playerbox.x - movespeed;
-			else if (currentKeyStates[SDL_SCANCODE_RIGHT] && !currentKeyStates[SDL_SCANCODE_LEFT])
-				playerbox.x = playerbox.x + movespeed;
-
-			if (playerbox.x < gLeftEdge)
-			{
-				playerbox.x = gLeftEdge;
-				isedgehit = 1;
-			}
-			else if (playerbox.x > gRightEdge)
-			{
-				playerbox.x = gRightEdge;
-				isedgehit = 1;
-			}
-
-			if (playerbox.y < gTopEdge)
-			{
-				playerbox.y = gTopEdge;
-				isedgehit = 1;
-			}
-			else if (playerbox.y > gBottomEdge)
-			{
-				playerbox.y = gBottomEdge;
-				isedgehit = 1;
-			}
+			isedgehit = gameKeyboard(currentKeyStates);
 		}
-		else
+		else if (gameover == 1)
 		{
 			if (currentKeyStates[SDL_SCANCODE_RETURN])
-				quit = 1;
+			{
+				gLevel = 1;
+				gHitPoints = 3;
+				gameover = 0;
+				invernable = 0;
+				isedgehit = 0;
+				newGame(renderer, &playarea);
+				continue;
+			}
+
+		}
+		else if (victory == 1)
+		{
+			if (currentKeyStates[SDL_SCANCODE_RETURN])
+			{
+				gLevel++;
+				victory = 0;
+				invernable = 0;
+				isedgehit = 0;
+				newGame(renderer, &playarea);
+				continue;
+			}
+				
 		}
 
-		if (isedgehit == 1 && invernable == 0)
+		//check for collision 
+		if (invernable == 0 && SDL_HasIntersection(&gPlayerBox, copyToSDLRect(&gEnemyBox, &tempbox)) == SDL_TRUE)
 		{
-			if (hit_points <= 0)
+			isedgehit = 1; // treat like a collision
+		}
+
+		if (invernable == 0 && victory == 0 && SDL_HasIntersection(&gPlayerBox, copyToSDLRect(&gGoalBox, &tempbox)) == SDL_TRUE)
+		{
+			victory = 1;
+			Mix_HaltMusic();
+			Mix_PlayChannel(-1, win, 0);
+		}
+
+		if (isedgehit == 1 && invernable == 0 && gameover == 0 && victory == 0)
+		{
+			if (gHitPoints <= 0)
 			{
 				gameover = 1;
 				Mix_HaltMusic();
 				Mix_PlayChannel(-1, death, 0);
-				thit_points = makeTextTexture(renderer, font, "Hit Points:  ", text_color, bg_color, SHADED);
-				SDL_QueryTexture(thit_points, NULL, NULL, &w, &h);
-				hitpoints_rect.w = w;
-				hitpoints_rect.h = h;
+				gtHitPoints = makeTextTexture(renderer, gSmallFont, "Hit Points:  ", text_color, bg_color, SHADED);
+				SDL_QueryTexture(gtHitPoints, NULL, NULL, &w, &h);
+				gHitPoints_rect.w = w;
+				gHitPoints_rect.h = h;
 			}
 			else
 			{
 				Mix_PlayChannel(-1, wall, 0);
 				playercolor = RED;
-				hit_points--;
+				gHitPoints--;
 				invernable = 1;
 				inv_count = 0;
 				inv_draw = 1;
 				inv_flash_count = 0;
-				sprintf_s(buffer, sizeof(buffer), "Hit Points: %d", hit_points);
-				thit_points = makeTextTexture(renderer, font, buffer, text_color, bg_color,SHADED);
-				SDL_QueryTexture(thit_points, NULL, NULL, &w, &h);
-				hitpoints_rect.w = w;
-				hitpoints_rect.h = h;
+				sprintf_s(buffer, sizeof(buffer), "Hit Points: %d", gHitPoints);
+				gtHitPoints = makeTextTexture(renderer, gSmallFont, buffer, text_color, bg_color,SHADED);
+				SDL_QueryTexture(gtHitPoints, NULL, NULL, &w, &h);
+				gHitPoints_rect.w = w;
+				gHitPoints_rect.h = h;
 			}
 		}
 
@@ -334,51 +365,68 @@ int main(int argc, char* args[])
 		}
 
 		//process box movement
-		moveAIBox(&goalbox);
-		moveAIBox(&enemybox);
+		if (victory == 0)
+		{
+			moveAIBox(&gGoalBox);
+			moveAIBox(&gEnemyBox);
+		}
 
 		//clear the screen
 		SDL_SetRenderDrawColor(renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
 		SDL_RenderClear(renderer);
 		//draw the header
-		SDL_RenderCopy(renderer, tlevel_number, NULL, &level_rect);
-		SDL_RenderCopy(renderer, thit_points, NULL, &hitpoints_rect);
-		SDL_RenderCopy(renderer, tboost, NULL, &boost_rect);
-		DrawBox(renderer, &boostmeter_rect, GREEN);
-		if (boost_pool < MAX_BOOST)
+		SDL_RenderCopy(renderer, gtLevelNumber, NULL, &gLevel_rect);
+		SDL_RenderCopy(renderer, gtHitPoints, NULL, &gHitPoints_rect);
+		SDL_RenderCopy(renderer, gtBoost, NULL, &gBoost_rect);
+		DrawBox(renderer, &gBoostmeter_rect, GREEN);
+		if (gBoostPool < MAX_BOOST)
 		{
-			boostdeplet_rect.w = MAX_BOOST-boost_pool;  
-			boostdeplet_rect.x = boostmeter_rect.x+boostmeter_rect.w-3-boostdeplet_rect.w; //just to initalize 
-			DrawBox(renderer, &boostdeplet_rect, BLACK);			
+			gBoostdeplet_rect.w = MAX_BOOST-gBoostPool;  
+			gBoostdeplet_rect.x = gBoostmeter_rect.x+gBoostmeter_rect.w-3-gBoostdeplet_rect.w; //just to initalize 
+			DrawBox(renderer, &gBoostdeplet_rect, BLACK);			
 		}
 		//draw playfield
 		DrawBox(renderer, &border, playercolor);
 		DrawBox(renderer, &playarea, BLACK);
 		//draw the dynamic boxes
-		DrawBox(renderer, copyToSDLRect(&goalbox, &tempbox), BLUE);
-		DrawBox(renderer, copyToSDLRect(&enemybox, &tempbox), ORANGE);
+		DrawBox(renderer, copyToSDLRect(&gGoalBox, &tempbox), BLUE);
+		if (victory == 0)
+			DrawBox(renderer, copyToSDLRect(&gEnemyBox, &tempbox), ORANGE);
 		if (invernable == 1 && inv_draw == 1)
-			DrawBox(renderer, &playerbox, playercolor);
+			DrawBox(renderer, &gPlayerBox, playercolor);
 		else if (invernable == 0 && gameover == 0)
-			DrawBox(renderer, &playerbox, playercolor);
+			DrawBox(renderer, &gPlayerBox, playercolor);
 
 		if (gameover == 1)
+		{
 			SDL_RenderCopy(renderer, tgameover, NULL, &gameover_rect); //if the game is over draw the Game Over text 
+			continue_rect.y = gameover_rect.y + gameover_rect.h + 10;
+			SDL_RenderCopy(renderer, tcontinue, NULL, &continue_rect);
+		}
+		if (victory == 1)
+		{
+			SDL_RenderCopy(renderer, tvictory, NULL, &victory_rect); //if the game is won draw the Victory text 
+			continue_rect.y = victory_rect.y + victory_rect.h + 10;
+			SDL_RenderCopy(renderer, tcontinue, NULL, &continue_rect);
+		}
 		SDL_RenderPresent(renderer); //present the frame 
 	}
 
 	Mix_HaltMusic();
-	Mix_FreeMusic(music);
+	Mix_FreeMusic(gMusic);
 	Mix_FreeChunk(wall);
 	Mix_FreeChunk(death);
+	Mix_FreeChunk(win);
 
-	SDL_DestroyTexture(tlevel_number);
-	SDL_DestroyTexture(thit_points);
-	SDL_DestroyTexture(tboost);
+	SDL_DestroyTexture(gtLevelNumber);
+	SDL_DestroyTexture(gtHitPoints);
+	SDL_DestroyTexture(gtBoost);
 	SDL_DestroyTexture(tgameover);	
+	SDL_DestroyTexture(tvictory);
+	SDL_DestroyTexture(tcontinue);
 
-	TTF_CloseFont(font);
-	TTF_CloseFont(largefont);
+	TTF_CloseFont(gSmallFont);
+	TTF_CloseFont(gLargeFont);
 
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);
@@ -386,6 +434,61 @@ int main(int argc, char* args[])
 	Mix_Quit();
 	SDL_Quit();
 	return(0);
+}
+
+short int gameKeyboard(const Uint8 *currentKeyStates)
+{
+	int movespeed = 1; //pixels moved per frame 
+	short int isedgehit = 0;
+
+	if (currentKeyStates[SDL_SCANCODE_LCTRL] || currentKeyStates[SDL_SCANCODE_RCTRL])
+	{
+		if (gBoostPool > 0)
+			movespeed = 3;
+
+		gBoostPool = gBoostPool - BOOST_DOWN;
+		if (gBoostPool < 0)
+			gBoostPool = 0;
+	}
+	else
+	{
+		gBoostPool = gBoostPool + BOOST_RECHARGE;
+		if (gBoostPool > MAX_BOOST)
+			gBoostPool = MAX_BOOST;
+	}
+
+	if (currentKeyStates[SDL_SCANCODE_UP] && !currentKeyStates[SDL_SCANCODE_DOWN])
+		gPlayerBox.y = gPlayerBox.y - movespeed;
+	else if (currentKeyStates[SDL_SCANCODE_DOWN] && !currentKeyStates[SDL_SCANCODE_UP])
+		gPlayerBox.y = gPlayerBox.y + movespeed;
+	if (currentKeyStates[SDL_SCANCODE_LEFT] && !currentKeyStates[SDL_SCANCODE_RIGHT])
+		gPlayerBox.x = gPlayerBox.x - movespeed;
+	else if (currentKeyStates[SDL_SCANCODE_RIGHT] && !currentKeyStates[SDL_SCANCODE_LEFT])
+		gPlayerBox.x = gPlayerBox.x + movespeed;
+
+	if (gPlayerBox.x < gLeftEdge)
+	{
+		gPlayerBox.x = gLeftEdge;
+		isedgehit = 1;
+	}
+	else if (gPlayerBox.x > gRightEdge)
+	{
+		gPlayerBox.x = gRightEdge;
+		isedgehit = 1;
+	}
+
+	if (gPlayerBox.y < gTopEdge)
+	{
+		gPlayerBox.y = gTopEdge;
+		isedgehit = 1;
+	}
+	else if (gPlayerBox.y > gBottomEdge)
+	{
+		gPlayerBox.y = gBottomEdge;
+		isedgehit = 1;
+	}
+
+	return(isedgehit);
 }
 
 void moveAIBox(struct AIBox *ai)

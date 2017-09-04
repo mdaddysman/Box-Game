@@ -27,6 +27,7 @@ const int PLAYAREA_BORDER = 6;
 static const char *GAME_MUSIC = "Music/Game1.mp3";
 static const char *WALL_SOUND = "Sounds/fail.wav";
 static const char *DEATH_SOUND = "Sounds/explosion.wav";
+static const char *WIN_SOUND = "Sounds/success.wav";
 static const char *FONT_FILE = "Fonts/RipeApricots.ttf";
 
 const int MAX_BOOST = 200;
@@ -51,6 +52,9 @@ struct AIBox {
 };
 
 //function prototypes 
+void newGame(SDL_Renderer *r, SDL_Rect *playarea);
+short int gameKeyboard(const Uint8 *currentKeyStates);
+
 void DrawBox(SDL_Renderer *r, SDL_Rect *box, enum BoxColors color);
 SDL_Texture* makeTextTexture(SDL_Renderer *r, TTF_Font *font, const char *text, SDL_Color fg, SDL_Color bg, enum TextType tt);
 SDL_Rect* copyToSDLRect(struct AIBox *ai, SDL_Rect *sdl);

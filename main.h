@@ -36,6 +36,8 @@ const int BOOST_RECHARGE = 1;
 const int INV_FRAMES = 60; //number of frame to be invernable after a hit - 1 sec 
 const int INV_FLASH_FRAME = 5; //on/off frames to flash to show invernablility 
 
+#define MAX_AI_BOXES 50
+
 //custom data types 
 enum BoxColors { BLACK = 0, WHITE, RED, BLUE, ORANGE, GREEN };
 enum TextType { SOLID = 0, SHADED, BLENDED };

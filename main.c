@@ -5,36 +5,11 @@
  * By Matthew K. Daddysman
  */
 
-#include <SDL.h>
-#include <SDL_mixer.h>
-#include <SDL_ttf.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
+#include "main.h"
 
-const int SCREEN_WIDTH = 800;
-const int SCREEN_HEIGHT = 600;
-
-const int SCOREBAR_HEIGHT = 30;
-const int PLAYAREA_PADDING = 4; 
-const int PLAYAREA_BORDER = 6; 
-
-static const char *GAME_MUSIC = "Music/Game1.mp3";
-static const char *WALL_SOUND = "Sounds/fail.wav";
-static const char *DEATH_SOUND = "Sounds/explosion.wav";
-static const char *FONT_FILE = "Fonts/RipeApricots.ttf";
-
-enum BoxColors {BLACK = 0, WHITE, RED, BLUE, ORANGE, GREEN};
-enum TextType {SOLID = 0, SHADED, BLENDED};
-
-const int MAX_BOOST = 200; 
-const int BOOST_DOWN = 3;
-const int BOOST_RECHARGE = 1;
-const int INV_FRAMES = 60; //number of frame to be invernable after a hit - 1 sec 
-const int INV_FLASH_FRAME = 5; //on/off frames to flash to show invernablility 
-
-void DrawBox(SDL_Renderer *r, SDL_Rect *box, enum BoxColors color); 
-SDL_Texture* makeTextTexture(SDL_Renderer *r, TTF_Font *font, const char *text, SDL_Color fg, SDL_Color bg, enum TextType tt);
+//global variables 
+int gLeftEdge, gRightEdge, gTopEdge, gBottomEdge;
+int gRandCount;
 
 int main(int argc, char* args[])
 {
@@ -49,6 +24,7 @@ int main(int argc, char* args[])
 	SDL_Texture *thit_points = NULL;
 	SDL_Texture *tboost = NULL;
 	SDL_Texture *tgameover = NULL;
+
 	char buffer[100];
 	int quit = 0;
 	int result = 0;
@@ -63,25 +39,19 @@ int main(int argc, char* args[])
 	int boost_pool = MAX_BOOST;
 	SDL_Event e;
 	enum BoxColors playercolor = WHITE;
-	time_t t;
 	SDL_Rect playerbox = {
 		200,
 		200,
 		10,
 		10,
 	};
-	SDL_Rect goalbox = {
+	SDL_Rect tempbox = {
 		200,
 		200,
 		10,
 		10,
 	};
-	SDL_Rect enemybox = {
-		200,
-		200,
-		10,
-		10,
-	};
+	struct AIBox goalbox, enemybox;
 	SDL_Rect border = {
 		PLAYAREA_PADDING,
 		SCOREBAR_HEIGHT + PLAYAREA_PADDING,
@@ -94,16 +64,30 @@ int main(int argc, char* args[])
 		SCREEN_WIDTH - 2 * PLAYAREA_PADDING - 2 * PLAYAREA_BORDER,
 		SCREEN_HEIGHT - SCOREBAR_HEIGHT - 2 * PLAYAREA_PADDING - 2 * PLAYAREA_BORDER
 	};
-	int left_edge, right_edge, top_edge, bottom_edge;
 	int movespeed = 1; //pixels moved per frame 
 	SDL_Color text_color = { 255, 255, 255 };
 	SDL_Color bg_color = { 0, 0, 0 };
 	SDL_Rect level_rect, hitpoints_rect, boost_rect, boostmeter_rect, boostdeplet_rect, gameover_rect;
 	int w, h;
-	left_edge = playarea.x;
-	top_edge = playarea.y;
-	right_edge = playarea.x + playarea.w - playerbox.w;
-	bottom_edge = playarea.y + playarea.h - playerbox.h;
+
+	gLeftEdge = playarea.x;
+	gTopEdge = playarea.y;
+	gRightEdge = playarea.x + playarea.w - playerbox.w;
+	gBottomEdge = playarea.y + playarea.h - playerbox.h;
+
+	goalbox.x = 200;
+	goalbox.y = 200;
+	goalbox.w = 10;
+	goalbox.h = 10;
+	goalbox.direction = NORTH;
+	goalbox.rand_direction = 1;
+
+	enemybox.x = 200;
+	enemybox.y = 200;
+	enemybox.w = 10;
+	enemybox.h = 10;
+	enemybox.direction = NORTH;
+	enemybox.rand_direction = 1;
 
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0)
 	{
@@ -174,8 +158,8 @@ int main(int argc, char* args[])
 		return(0);
 	}
 
-	srand((unsigned)time(&t));
-
+	seedrnd();
+	
 	Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048);
 	music = Mix_LoadMUS(GAME_MUSIC);
 	wall = Mix_LoadWAV(WALL_SOUND);
@@ -221,14 +205,16 @@ int main(int argc, char* args[])
 	gameover_rect.x = playarea.x + playarea.w / 2 - w / 2;
 	gameover_rect.y = playarea.y + playarea.h / 2 - h / 2;
 	
-	playerbox.x = rand() % playarea.w + playarea.x;
-	playerbox.y = rand() % playarea.h + playarea.y;
+	playerbox.x = rnd(playarea.w-20) + playarea.x + 10; //10 pixel buffer from the edge 
+	playerbox.y = rnd(playarea.h-20) + playarea.y + 10;
 	
-	goalbox.x = rand() % playarea.w + playarea.x;
-	goalbox.y = rand() % playarea.h + playarea.y;
+	goalbox.x = rnd(playarea.w-20) + playarea.x + 10;
+	goalbox.y = rnd(playarea.h-20) + playarea.y + 10;
+	goalbox.direction = rnd(numMoveDirection);
 
-	enemybox.x = rand() % playarea.w + playarea.x;
-	enemybox.y = rand() % playarea.h + playarea.y;
+	enemybox.x = rnd(playarea.w-20) + playarea.x + 10;
+	enemybox.y = rnd(playarea.h-20) + playarea.y + 10;
+	enemybox.direction = rnd(numMoveDirection);
 
 	while (quit == 0)
 	{
@@ -269,27 +255,32 @@ int main(int argc, char* args[])
 			else if (currentKeyStates[SDL_SCANCODE_RIGHT] && !currentKeyStates[SDL_SCANCODE_LEFT])
 				playerbox.x = playerbox.x + movespeed;
 
-			if (playerbox.x < left_edge)
+			if (playerbox.x < gLeftEdge)
 			{
-				playerbox.x = left_edge;
+				playerbox.x = gLeftEdge;
 				isedgehit = 1;
 			}
-			else if (playerbox.x > right_edge)
+			else if (playerbox.x > gRightEdge)
 			{
-				playerbox.x = right_edge;
+				playerbox.x = gRightEdge;
 				isedgehit = 1;
 			}
 
-			if (playerbox.y < top_edge)
+			if (playerbox.y < gTopEdge)
 			{
-				playerbox.y = top_edge;
+				playerbox.y = gTopEdge;
 				isedgehit = 1;
 			}
-			else if (playerbox.y > bottom_edge)
+			else if (playerbox.y > gBottomEdge)
 			{
-				playerbox.y = bottom_edge;
+				playerbox.y = gBottomEdge;
 				isedgehit = 1;
 			}
+		}
+		else
+		{
+			if (currentKeyStates[SDL_SCANCODE_RETURN])
+				quit = 1;
 		}
 
 		if (isedgehit == 1 && invernable == 0)
@@ -342,6 +333,10 @@ int main(int argc, char* args[])
 			}
 		}
 
+		//process box movement
+		moveAIBox(&goalbox);
+		moveAIBox(&enemybox);
+
 		//clear the screen
 		SDL_SetRenderDrawColor(renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
 		SDL_RenderClear(renderer);
@@ -360,8 +355,8 @@ int main(int argc, char* args[])
 		DrawBox(renderer, &border, playercolor);
 		DrawBox(renderer, &playarea, BLACK);
 		//draw the dynamic boxes
-		DrawBox(renderer, &goalbox, BLUE);
-		DrawBox(renderer, &enemybox, ORANGE);
+		DrawBox(renderer, copyToSDLRect(&goalbox, &tempbox), BLUE);
+		DrawBox(renderer, copyToSDLRect(&enemybox, &tempbox), ORANGE);
 		if (invernable == 1 && inv_draw == 1)
 			DrawBox(renderer, &playerbox, playercolor);
 		else if (invernable == 0 && gameover == 0)
@@ -391,6 +386,153 @@ int main(int argc, char* args[])
 	Mix_Quit();
 	SDL_Quit();
 	return(0);
+}
+
+void moveAIBox(struct AIBox *ai)
+{
+	//first check if direction should be switched due to collision 
+	if (checkAIBoxDirection(ai) == 1)
+	{
+		//direction has changed so only move the box
+		changeAIBoxCoordinates(ai);
+	}
+	else
+	{
+		//move the box and then see if the direction should be changed for the next move 
+		changeAIBoxCoordinates(ai);
+		if (rnd(100) < ai->rand_direction)
+			ai->direction = rnd(numMoveDirection);	
+	}
+}
+
+int checkAIBoxDirection(struct AIBox *ai)
+{
+	int result = 0; //0 if box didn't change direction; 1 if it does 
+	struct AIBox temp;
+	temp.x = ai->x;
+	temp.y = ai->y;
+	temp.w = ai->w;
+	temp.h = ai->h;
+	temp.direction = ai->direction;
+	temp.rand_direction = 0;
+
+	changeAIBoxCoordinates(&temp); //move the temp box and then check and see if there is an issue 
+
+	if (temp.x <= gLeftEdge) //change the west to east 
+	{
+		result = 1;
+		switch (ai->direction)
+		{
+		case WEST:
+			ai->direction = EAST;
+			break;
+		case NORTHWEST:
+			ai->direction = NORTHEAST;
+			break;
+		case SOUTHWEST:
+			ai->direction = SOUTHEAST;
+			break;
+		default:
+			break;
+		}
+	}
+
+	if (temp.x >= gRightEdge) //change the east to west 
+	{
+		result = 1;
+		switch (ai->direction)
+		{
+		case EAST:
+			ai->direction = WEST;
+			break;
+		case NORTHEAST:
+			ai->direction = NORTHWEST;
+			break;
+		case SOUTHEAST:
+			ai->direction = SOUTHWEST;
+			break;
+		default:
+			break;
+		}
+	}
+
+	if (temp.y <= gTopEdge) //change the north to south 
+	{
+		result = 1;
+		switch (ai->direction)
+		{
+		case NORTH:
+			ai->direction = SOUTH;
+			break;
+		case NORTHWEST:
+			ai->direction = SOUTHWEST;
+			break;
+		case NORTHEAST:
+			ai->direction = SOUTHEAST;
+			break;
+		default:
+			break;
+		}
+	}
+
+	if (temp.y >= gBottomEdge) //change the south to north
+	{
+		result = 1;
+		switch (ai->direction)
+		{
+		case SOUTH:
+			ai->direction = NORTH;
+			break;
+		case SOUTHWEST:
+			ai->direction = NORTHWEST;
+			break;
+		case SOUTHEAST:
+			ai->direction = NORTHEAST;
+			break;
+		default:
+			break;
+		}
+	}
+	return result;
+}
+
+void changeAIBoxCoordinates(struct AIBox *ai)
+{
+	int move = 1;
+
+	switch (ai->direction)
+	{
+	case NORTH:
+		ai->y = ai->y - move;
+		break;
+	case SOUTH:
+		ai->y = ai->y + move;
+		break;
+	case EAST:
+		ai->x = ai->x + move;
+		break;
+	case WEST:
+		ai->x = ai->x - move;
+		break;
+	case NORTHEAST:
+		ai->x = ai->x + move;
+		ai->y = ai->y - move;
+		break;
+	case NORTHWEST:
+		ai->x = ai->x - move;
+		ai->y = ai->y - move;
+		break;
+	case SOUTHEAST:
+		ai->x = ai->x + move;
+		ai->y = ai->y + move;
+		break;
+	case SOUTHWEST:
+		ai->x = ai->x - move;
+		ai->y = ai->y + move;
+		break;
+	default:
+		break;
+	}
 }
 
 void DrawBox(SDL_Renderer *r, SDL_Rect *box, enum BoxColors color)
@@ -465,4 +607,30 @@ SDL_Texture* makeTextTexture(SDL_Renderer *r, TTF_Font *font, const char *text, 
 	SDL_FreeSurface(text_surface);
 	text_surface = NULL;
 	return(text_texture);
+}
+
+SDL_Rect* copyToSDLRect(struct AIBox *ai, SDL_Rect *sdl)
+{
+	sdl->x = ai->x;
+	sdl->y = ai->y;
+	sdl->w = ai->w;
+	sdl->h = ai->h;
+	return sdl;
+}
+
+void seedrnd(void)
+{
+	time_t t;
+
+	srand((unsigned)time(&t));
+	gRandCount = 0;
+}
+
+int rnd(int range)
+{
+	gRandCount++;
+	if (gRandCount > STALE_RANDOM)
+		seedrnd();
+
+	return(rand() % range);
 }

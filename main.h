@@ -28,21 +28,25 @@ static const char *GAME_MUSIC = "Music/Game1.mp3";
 static const char *WALL_SOUND = "Sounds/fail.wav";
 static const char *DEATH_SOUND = "Sounds/explosion.wav";
 static const char *WIN_SOUND = "Sounds/success.wav";
+static const char *COUNTDOWN_SOUND = "Sounds/countdown.wav";
 static const char *FONT_FILE = "Fonts/RipeApricots.ttf";
 
-const int MAX_BOOST = 200;
-const int BOOST_DOWN = 3;
-const int BOOST_RECHARGE = 1;
+const float MAX_BOOST = 100;
+const float BOOST_DOWN_START = 1.5;
+const float BOOST_RECHARGE_START = 0.5;
+const float BOOST_DOWN_UPGRADE = (float) 0.07;
+const float BOOST_RECHARGE_UPGRADE = (float) 0.1;
 const int INV_FRAMES = 60; //number of frame to be invernable after a hit - 1 sec 
 const int INV_FLASH_FRAME = 5; //on/off frames to flash to show invernablility 
 
 #define MAX_AI_BOXES 50
 
 //custom data types 
-enum BoxColors { BLACK = 0, WHITE, RED, BLUE, ORANGE, GREEN };
+enum BoxColors { BLACK = 0, WHITE, RED, BLUE, ORANGE, GREEN, YELLOW };
 enum TextType { SOLID = 0, SHADED, BLENDED };
 enum MoveDirection { NORTH = 0, SOUTH, EAST, WEST, NORTHEAST, NORTHWEST, SOUTHEAST, SOUTHWEST };
 const int numMoveDirection = 8;
+enum AIType {RANDOM = 0, SEEK, NONE};
 
 struct AIBox {
 	int x;
@@ -51,10 +55,14 @@ struct AIBox {
 	int h;
 	enum MoveDirection direction;
 	int rand_direction; //chance of randomizing the direction, out of 100 
+	int speed;
+	enum BoxColors color;
+	enum AIType aitype;
 };
 
 //function prototypes 
-void newGame(SDL_Renderer *r, SDL_Rect *playarea);
+void newGame(SDL_Renderer *r, SDL_Rect *playarea); //starts a new level
+void resetGame(void);  //resets back to level one after a game over, also call when loading the program 
 short int gameKeyboard(const Uint8 *currentKeyStates);
 
 void DrawBox(SDL_Renderer *r, SDL_Rect *box, enum BoxColors color);

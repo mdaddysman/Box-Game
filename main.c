@@ -1,7 +1,7 @@
 /*
  * Box Game - main.c
  * Box Game to demo SDL2 and simple AI
- * Forked from SDL Learning repo on 9/3/2017 
+ * Forked from SDL Learning repo on 9/3/2017
  * By Matthew K. Daddysman
  */
 
@@ -9,14 +9,26 @@
 
 //global variables 
 int gRandCount; // number of times the random number generator has been called 
-int gLevel, gHitPoints, gBoostPool, gAIMoveSpeed, gNumAIs; //the current Level, Hit Points, BoostPool of the player, and the speed at which the AI moves 
+int gLevel, gHitPoints, gNumAIs; //the current Level, Hit Points, and the speed at which the AI moves 
+float gBoostPool, gBoostDown, gBoostRecharge; //the Boost pool in percent. float for fraction and how fast it charges and recharges
 int gLeftEdge, gRightEdge, gTopEdge, gBottomEdge; //define the edges of the playfield for bounds checking 
 Mix_Music *gMusic;
+Mix_Chunk *gCountdown;
 TTF_Font *gSmallFont, *gLargeFont;
 SDL_Texture *gtLevelNumber, *gtHitPoints, *gtBoost;
 SDL_Rect gLevel_rect, gHitPoints_rect, gBoost_rect, gBoostmeter_rect, gBoostdeplet_rect, gPlayerBox;
 struct AIBox gGoalBox, gEnemyBox[MAX_AI_BOXES];
 
+void resetGame(void)
+{
+	gLevel = 1;
+	gHitPoints = 3;
+	gBoostPool = MAX_BOOST;
+	gBoostDown = BOOST_DOWN_START;
+	gBoostRecharge = BOOST_RECHARGE_START;
+	gNumAIs = 1;
+	gGoalBox.rand_direction = 1;
+}
 
 void newGame(SDL_Renderer *r, SDL_Rect *playarea)
 {
@@ -83,17 +95,25 @@ int main(int argc, char* args[])
 {
 	SDL_Window *window = NULL;
 	SDL_Renderer *renderer = NULL;
-	
+
 	Mix_Chunk *wall = NULL;
-	Mix_Chunk *death = NULL; 
+	Mix_Chunk *death = NULL;
 	Mix_Chunk *win = NULL;
 	
 	SDL_Texture *tgameover = NULL;
 	SDL_Texture *tvictory = NULL;
 	SDL_Texture *tcontinue = NULL;
+
+
 	SDL_Texture *tmoreAI = NULL;
-	SDL_Texture *tfasterAI = NULL;
 	SDL_Texture *thardGoal = NULL;
+	SDL_Texture *trecover = NULL;
+	SDL_Texture *tfasterAI = NULL;
+	SDL_Texture *tfasterrecharge = NULL;
+	SDL_Texture *yellowbox = NULL;
+
+	SDL_Rect upgradeRects[5];
+	SDL_Texture *upgradeTextures[5];
 
 	char buffer[100];
 	int quit = 0;
@@ -101,16 +121,16 @@ int main(int argc, char* args[])
 	short int isedgehit = 0;
 	short int invernable = 0;
 	short int inv_flash_count = 0;
-	short int inv_draw = 0; 
+	short int inv_draw = 0;
 	short int gameover = 0;
 	short int victory = 0;
-	int inv_count = 0; 
-	
+	int inv_count = 0;
+
 
 	SDL_Event e;
 	enum BoxColors playercolor = WHITE;
 
-	SDL_Rect tempbox = {0,0,0,0};
+	SDL_Rect tempbox = { 0, 0, 0, 0 };
 	SDL_Rect border = {
 		PLAYAREA_PADDING,
 		SCOREBAR_HEIGHT + PLAYAREA_PADDING,
@@ -123,27 +143,26 @@ int main(int argc, char* args[])
 		SCREEN_WIDTH - 2 * PLAYAREA_PADDING - 2 * PLAYAREA_BORDER,
 		SCREEN_HEIGHT - SCOREBAR_HEIGHT - 2 * PLAYAREA_PADDING - 2 * PLAYAREA_BORDER
 	};
-	
+
 	SDL_Color text_color = { 255, 255, 255 };
 	SDL_Color bg_color = { 0, 0, 0 };
 	SDL_Rect gameover_rect, victory_rect, continue_rect;
 	int w, h, i;
 	short int numUpgrades = 0;
-	SDL_Rect upgradeRects[3];
-	SDL_Texture *upgradeTextures[3];
+
+
+	const int END_TEXT_SPACING = 2;
 
 	//initalize global variables
 	gMusic = NULL;
+	gCountdown = NULL;
 	gSmallFont = NULL;
 	gLargeFont = NULL;
 	gtLevelNumber = NULL;
 	gtHitPoints = NULL;
 	gtBoost = NULL;
-	gLevel = 1;
-	gHitPoints = 3;
-	gBoostPool = MAX_BOOST;
-	gAIMoveSpeed = 1;
-	gNumAIs = 1;
+	
+	resetGame(); //reset the global variables 
 
 	gPlayerBox.x = 200;
 	gPlayerBox.y = 200;
@@ -154,13 +173,16 @@ int main(int argc, char* args[])
 	gTopEdge = playarea.y;
 	gRightEdge = playarea.x + playarea.w - gPlayerBox.w;
 	gBottomEdge = playarea.y + playarea.h - gPlayerBox.h;
-	
+
 	gGoalBox.x = 200;
 	gGoalBox.y = 200;
 	gGoalBox.w = 10;
 	gGoalBox.h = 10;
 	gGoalBox.direction = NORTH;
 	gGoalBox.rand_direction = 1;
+	gGoalBox.color = BLUE;
+	gGoalBox.speed = 1;
+	gGoalBox.aitype = RANDOM;
 
 	for (i = 0; i < MAX_AI_BOXES; i++)
 	{
@@ -169,7 +191,20 @@ int main(int argc, char* args[])
 		gEnemyBox[i].w = 10;
 		gEnemyBox[i].h = 10;
 		gEnemyBox[i].direction = NORTH;
-		gEnemyBox[i].rand_direction = i;  //make each new box more apt to change direction 
+		gEnemyBox[i].rand_direction = i % 5;  //make each new box more apt to change direction within a speed group 
+		if (i % 5 == 0 && i > 0)
+		{
+			gEnemyBox[i].color = YELLOW;
+			gEnemyBox[i].speed = 1;
+			gEnemyBox[i].aitype = SEEK;
+		}
+		else
+		{
+			gEnemyBox[i].color = ORANGE;
+			gEnemyBox[i].speed = i / 5 + 1;
+			gEnemyBox[i].aitype = RANDOM;
+		}
+
 	}
 	//end initalize global variables
 
@@ -182,7 +217,7 @@ int main(int argc, char* args[])
 
 	if (MIX_INIT_MP3 != (result = Mix_Init(MIX_INIT_MP3)))
 	{
-		printf("SDL Mixer could not initialize! Code: %d Error: %s\n",result, SDL_GetError());
+		printf("SDL Mixer could not initialize! Code: %d Error: %s\n", result, SDL_GetError());
 		SDL_Quit();
 		return(0);
 	}
@@ -243,12 +278,13 @@ int main(int argc, char* args[])
 	}
 
 	seedrnd();
-	
+
 	Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048);
 	gMusic = Mix_LoadMUS(GAME_MUSIC);
 	wall = Mix_LoadWAV(WALL_SOUND);
 	death = Mix_LoadWAV(DEATH_SOUND);
 	win = Mix_LoadWAV(WIN_SOUND);
+	gCountdown = Mix_LoadWAV(COUNTDOWN_SOUND);
 
 	tgameover = makeTextTexture(renderer, gLargeFont, "GAME OVER", text_color, bg_color, BLENDED);
 	SDL_QueryTexture(tgameover, NULL, NULL, &w, &h);
@@ -270,14 +306,18 @@ int main(int argc, char* args[])
 	continue_rect.h = h;
 	continue_rect.x = playarea.x + playarea.w / 2 - w / 2;
 	continue_rect.y = playarea.y + playarea.h / 2 - h / 2;
-		
-	tmoreAI = makeTextTexture(renderer, gSmallFont, "You will now face more opposition!", text_color, bg_color, BLENDED);
-	tfasterAI = makeTextTexture(renderer, gSmallFont, "You gain 1 hit point! But your opposition (and goal) will now move faster!", text_color, bg_color, BLENDED);
-	thardGoal = makeTextTexture(renderer, gSmallFont, "Your goal will now behave more erratically!", text_color, bg_color, BLENDED);
+
+	tmoreAI = makeTextTexture(renderer, gSmallFont, "You will now face more opposition.", text_color, bg_color, BLENDED);
+	trecover = makeTextTexture(renderer, gSmallFont, "Good Work! You gain 1 hit point and a longer boost!", text_color, bg_color, BLENDED);
+	thardGoal = makeTextTexture(renderer, gSmallFont, "Your goal will now behave more erratically.", text_color, bg_color, BLENDED);
+	tfasterAI = makeTextTexture(renderer, gSmallFont, "Some of your opposition will now move faster.", text_color, bg_color, BLENDED);
+	tfasterrecharge = makeTextTexture(renderer, gSmallFont, "Your boost will also recharge faster.", text_color, bg_color, BLENDED);
+	yellowbox = makeTextTexture(renderer, gSmallFont, "A new challenge! The yellow box will home in on your position.", text_color, bg_color, BLENDED);
 
 	upgradeTextures[0] = tmoreAI; upgradeTextures[1] = tfasterAI; upgradeTextures[2] = thardGoal; //avoid NULL pointers 
-	
-	newGame(renderer,&playarea); //start to configure a new game 
+	upgradeTextures[3] = trecover; upgradeTextures[4] = tfasterrecharge;
+
+	newGame(renderer, &playarea); //start to configure a new game 
 
 	while (quit == 0)
 	{
@@ -286,7 +326,7 @@ int main(int argc, char* args[])
 			if (e.type == SDL_QUIT)
 				quit = 1;
 		}
-		
+
 
 		const Uint8 *currentKeyStates = SDL_GetKeyboardState(NULL);
 
@@ -298,15 +338,11 @@ int main(int argc, char* args[])
 		{
 			if (currentKeyStates[SDL_SCANCODE_RETURN])
 			{
-				gLevel = 1;
-				gHitPoints = 3;
-				gAIMoveSpeed = 1;
-				gNumAIs = 1;
-				gGoalBox.rand_direction = 1;
 				gameover = 0;
 				invernable = 0;
 				isedgehit = 0;
-				newGame(renderer, &playarea);
+				resetGame(); //game is over so reset back to starting values
+				newGame(renderer, &playarea); //then start a new game 
 				continue;
 			}
 
@@ -321,11 +357,11 @@ int main(int argc, char* args[])
 				newGame(renderer, &playarea);
 				continue;
 			}
-				
+
 		}
 
 		//check for collision 
-		if (invernable == 0) 			
+		if (invernable == 0)
 		{
 			for (i = 0; i < gNumAIs; i++)
 			{
@@ -337,40 +373,64 @@ int main(int argc, char* args[])
 			}
 		}
 
-		if (invernable == 0 && victory == 0 && 
+		if (invernable == 0 && victory == 0 && gameover == 0 &&
 			SDL_HasIntersection(&gPlayerBox, copyToSDLRect(&gGoalBox, &tempbox)) == SDL_TRUE)
 		{
 			victory = 1;
 			Mix_HaltMusic();
 			Mix_PlayChannel(-1, win, 0);
-			gLevel++;
-			numUpgrades = 0; 
-			if ((gLevel % 5) == 0)
+
+			if (gLevel < 100)
 			{
-				gAIMoveSpeed++;
-				gHitPoints++;
-				upgradeTextures[numUpgrades] = tfasterAI;
-				numUpgrades++;
-			}
-			if ((gLevel % 2) == 0 && gNumAIs < MAX_AI_BOXES - 1)
-			{
-				gNumAIs++;
-				upgradeTextures[numUpgrades] = tmoreAI;
-				numUpgrades++;
-			}
-			if ((gLevel % 3) == 0)
-			{
-				gGoalBox.rand_direction = gGoalBox.rand_direction + 1;
-				upgradeTextures[numUpgrades] = thardGoal;
-				numUpgrades++;
-			}
-			for (i = 0; i < numUpgrades; i++)
-			{
-				SDL_QueryTexture(upgradeTextures[i], NULL, NULL, &w, &h);
-				upgradeRects[i].w = w;
-				upgradeRects[i].h = h;
-				upgradeRects[i].x = playarea.x + playarea.w / 2 - w / 2;
-				upgradeRects[i].y = 0; //set later
+				gLevel++;
+				numUpgrades = 0;
+				if ((gLevel % 10) == 0)
+				{
+					gBoostRecharge = gBoostRecharge + BOOST_RECHARGE_UPGRADE;
+				}
+				if ((gLevel % 5) == 0)
+				{
+					gHitPoints++;
+					gBoostDown = gBoostDown - BOOST_DOWN_UPGRADE;
+					upgradeTextures[numUpgrades] = trecover;
+					numUpgrades++;
+					if ((gLevel % 10) == 0)
+					{
+						gBoostRecharge = gBoostRecharge + BOOST_RECHARGE_UPGRADE;
+						upgradeTextures[numUpgrades] = tfasterrecharge;
+						numUpgrades++;
+					}
+				}
+				if ((gLevel % 2) == 0 && gNumAIs < MAX_AI_BOXES - 1)
+				{
+					gNumAIs++;
+					upgradeTextures[numUpgrades] = tmoreAI;
+					numUpgrades++;
+				}
+				if ((gLevel % 3) == 0)
+				{
+					gGoalBox.rand_direction = gGoalBox.rand_direction + 1;
+					upgradeTextures[numUpgrades] = thardGoal;
+					numUpgrades++;
+				}
+				if ((gLevel % 10) == 2 && gLevel > 10)
+				{
+					upgradeTextures[numUpgrades] = tfasterAI;
+					numUpgrades++;
+				}
+				if (gLevel == 10)
+				{
+					upgradeTextures[numUpgrades] = yellowbox;
+					numUpgrades++;
+				}
+				for (i = 0; i < numUpgrades; i++)
+				{
+					SDL_QueryTexture(upgradeTextures[i], NULL, NULL, &w, &h);
+					upgradeRects[i].w = w;
+					upgradeRects[i].h = h;
+					upgradeRects[i].x = playarea.x + playarea.w / 2 - w / 2;
+					upgradeRects[i].y = 0; //set later
+				}
 			}
 		}
 
@@ -396,7 +456,7 @@ int main(int argc, char* args[])
 				inv_draw = 1;
 				inv_flash_count = 0;
 				sprintf_s(buffer, sizeof(buffer), "Hit Points: %d", gHitPoints);
-				gtHitPoints = makeTextTexture(renderer, gSmallFont, buffer, text_color, bg_color,SHADED);
+				gtHitPoints = makeTextTexture(renderer, gSmallFont, buffer, text_color, bg_color, SHADED);
 				SDL_QueryTexture(gtHitPoints, NULL, NULL, &w, &h);
 				gHitPoints_rect.w = w;
 				gHitPoints_rect.h = h;
@@ -432,6 +492,7 @@ int main(int argc, char* args[])
 				moveAIBox(&gEnemyBox[i]);
 		}
 
+		//start drawing 
 		//clear the screen
 		SDL_SetRenderDrawColor(renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
 		SDL_RenderClear(renderer);
@@ -440,45 +501,45 @@ int main(int argc, char* args[])
 		SDL_RenderCopy(renderer, gtHitPoints, NULL, &gHitPoints_rect);
 		SDL_RenderCopy(renderer, gtBoost, NULL, &gBoost_rect);
 		DrawBox(renderer, &gBoostmeter_rect, GREEN);
-		if (gBoostPool < MAX_BOOST)
+		if (gBoostPool < MAX_BOOST) //draw the boost meeter depletion 
 		{
-			gBoostdeplet_rect.w = MAX_BOOST-gBoostPool;  
-			gBoostdeplet_rect.x = gBoostmeter_rect.x+gBoostmeter_rect.w-3-gBoostdeplet_rect.w; //just to initalize 
-			DrawBox(renderer, &gBoostdeplet_rect, BLACK);			
+			gBoostdeplet_rect.w = (int)((MAX_BOOST - gBoostPool) / MAX_BOOST * 200);
+			gBoostdeplet_rect.x = gBoostmeter_rect.x + gBoostmeter_rect.w - 3 - gBoostdeplet_rect.w; 
+			DrawBox(renderer, &gBoostdeplet_rect, BLACK);
 		}
 		//draw playfield
 		DrawBox(renderer, &border, playercolor);
 		DrawBox(renderer, &playarea, BLACK);
 		//draw the dynamic boxes
-		DrawBox(renderer, copyToSDLRect(&gGoalBox, &tempbox), BLUE);
+		DrawBox(renderer, copyToSDLRect(&gGoalBox, &tempbox), gGoalBox.color);
 		if (victory == 0)
 		{
 			for (i = 0; i < gNumAIs; i++)
-				DrawBox(renderer, copyToSDLRect(&gEnemyBox[i], &tempbox), ORANGE);
+				DrawBox(renderer, copyToSDLRect(&gEnemyBox[i], &tempbox), gEnemyBox[i].color);
 		}
 		if (invernable == 1 && inv_draw == 1)
 			DrawBox(renderer, &gPlayerBox, playercolor);
 		else if (invernable == 0 && gameover == 0)
 			DrawBox(renderer, &gPlayerBox, playercolor);
 
-		if (gameover == 1)
+		if (gameover == 1) //draw game over text 
 		{
 			SDL_RenderCopy(renderer, tgameover, NULL, &gameover_rect); //if the game is over draw the Game Over text 
-			continue_rect.y = gameover_rect.y + gameover_rect.h + 10;
+			continue_rect.y = gameover_rect.y + gameover_rect.h + END_TEXT_SPACING;
 			SDL_RenderCopy(renderer, tcontinue, NULL, &continue_rect);
 		}
-		if (victory == 1)
+		if (victory == 1) //draw win text and any notifications 
 		{
 			SDL_RenderCopy(renderer, tvictory, NULL, &victory_rect); //if the game is won draw the Victory text 
-			continue_rect.y = victory_rect.y + victory_rect.h + 10;
+			continue_rect.y = victory_rect.y + victory_rect.h + END_TEXT_SPACING;
 			SDL_RenderCopy(renderer, tcontinue, NULL, &continue_rect);
 			if (numUpgrades > 0)
 			{
-				upgradeRects[0].y = continue_rect.y + continue_rect.h + 10;
+				upgradeRects[0].y = continue_rect.y + continue_rect.h + END_TEXT_SPACING;
 				SDL_RenderCopy(renderer, upgradeTextures[0], NULL, &upgradeRects[0]);
 				for (i = 1; i < numUpgrades; i++)
 				{
-					upgradeRects[i].y = upgradeRects[i-1].y + upgradeRects[i-1].h + 10;
+					upgradeRects[i].y = upgradeRects[i - 1].y + upgradeRects[i - 1].h + END_TEXT_SPACING;
 					SDL_RenderCopy(renderer, upgradeTextures[i], NULL, &upgradeRects[i]);
 				}
 			}
@@ -486,21 +547,27 @@ int main(int argc, char* args[])
 		SDL_RenderPresent(renderer); //present the frame 
 	}
 
+	//program is ending free all the resources 
 	Mix_HaltMusic();
 	Mix_FreeMusic(gMusic);
 	Mix_FreeChunk(wall);
 	Mix_FreeChunk(death);
 	Mix_FreeChunk(win);
+	Mix_FreeChunk(gCountdown);
 
 	SDL_DestroyTexture(gtLevelNumber);
 	SDL_DestroyTexture(gtHitPoints);
 	SDL_DestroyTexture(gtBoost);
-	SDL_DestroyTexture(tgameover);	
+	SDL_DestroyTexture(tgameover);
 	SDL_DestroyTexture(tvictory);
 	SDL_DestroyTexture(tcontinue);
+
 	SDL_DestroyTexture(tmoreAI);
-	SDL_DestroyTexture(tfasterAI);
+	SDL_DestroyTexture(trecover);
 	SDL_DestroyTexture(thardGoal);
+	SDL_DestroyTexture(tfasterAI);
+	SDL_DestroyTexture(tfasterrecharge);
+	SDL_DestroyTexture(yellowbox);
 
 	TTF_CloseFont(gSmallFont);
 	TTF_CloseFont(gLargeFont);
@@ -523,13 +590,13 @@ short int gameKeyboard(const Uint8 *currentKeyStates)
 		if (gBoostPool > 0)
 			movespeed = 3;
 
-		gBoostPool = gBoostPool - BOOST_DOWN;
+		gBoostPool = gBoostPool - gBoostDown;
 		if (gBoostPool < 0)
 			gBoostPool = 0;
 	}
 	else
 	{
-		gBoostPool = gBoostPool + BOOST_RECHARGE;
+		gBoostPool = gBoostPool + gBoostRecharge;
 		if (gBoostPool > MAX_BOOST)
 			gBoostPool = MAX_BOOST;
 	}
@@ -581,7 +648,7 @@ void moveAIBox(struct AIBox *ai)
 		//move the box and then see if the direction should be changed for the next move 
 		changeAIBoxCoordinates(ai);
 		if (rnd(100) < ai->rand_direction)
-			ai->direction = rnd(numMoveDirection);	
+			ai->direction = rnd(numMoveDirection);
 	}
 }
 
@@ -594,7 +661,9 @@ int checkAIBoxDirection(struct AIBox *ai)
 	temp.w = ai->w;
 	temp.h = ai->h;
 	temp.direction = ai->direction;
+	temp.speed = ai->speed;
 	temp.rand_direction = 0;
+	temp.color = BLACK;
 
 	changeAIBoxCoordinates(&temp); //move the temp box and then check and see if there is an issue 
 
@@ -678,7 +747,7 @@ int checkAIBoxDirection(struct AIBox *ai)
 
 void changeAIBoxCoordinates(struct AIBox *ai)
 {
-	int move = gAIMoveSpeed;
+	int move = ai->speed;
 
 	switch (ai->direction)
 	{
@@ -718,7 +787,7 @@ void changeAIBoxCoordinates(struct AIBox *ai)
 void DrawBox(SDL_Renderer *r, SDL_Rect *box, enum BoxColors color)
 {
 	//enum BoxColors {BLACK = 0, WHITE, RED, BLUE, ORANGE, GREEN}
-	switch(color)
+	switch (color)
 	{
 	case WHITE:
 		SDL_SetRenderDrawColor(r, 255, 255, 255, SDL_ALPHA_OPAQUE);
@@ -738,10 +807,13 @@ void DrawBox(SDL_Renderer *r, SDL_Rect *box, enum BoxColors color)
 	case GREEN:
 		SDL_SetRenderDrawColor(r, 34, 139, 34, SDL_ALPHA_OPAQUE);
 		break;
+	case YELLOW:
+		SDL_SetRenderDrawColor(r, 255, 255, 0, SDL_ALPHA_OPAQUE);
+		break;
 	default:
 		SDL_SetRenderDrawColor(r, 0, 0, 0, SDL_ALPHA_OPAQUE);
 		break;
-	}		
+	}
 	SDL_RenderFillRect(r, box);
 
 }

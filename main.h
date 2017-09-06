@@ -38,6 +38,7 @@ const float BOOST_DOWN_UPGRADE = (float) 0.07;
 const float BOOST_RECHARGE_UPGRADE = (float) 0.1;
 const int INV_FRAMES = 60; //number of frame to be invernable after a hit - 1 sec 
 const int INV_FLASH_FRAME = 5; //on/off frames to flash to show invernablility 
+const double PLAYER_BUFFER = 50; //min distance for boxes to be away from the player to start 
 
 #define MAX_AI_BOXES 50
 

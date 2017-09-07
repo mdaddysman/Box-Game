@@ -10,75 +10,61 @@
 //global variables 
 int gRandCount; // number of times the random number generator has been called 
 TTF_Font *gSmallFont, *gLargeFont;
+enum ProgramState gProgramState;
 
 //game globals to extern 
 extern int gLeftEdge, gRightEdge, gTopEdge, gBottomEdge; //define the edges of the playfield for bounds checking 
-extern short int gIsCountdown, gCountdownSecCount; //is the countdown running? 
-extern SDL_Rect gPlayerBox, gPlayarea;
+
+
 
 //remove these externs with more work
-extern struct AIBox gGoalBox;
-extern int gLevel, gHitPoints, gNumAIs;
-extern float gBoostPool, gBoostDown, gBoostRecharge; //the Boost pool in percent. float for fraction and how fast it charges and recharges
-extern SDL_Texture *gtHitPoints;
-extern SDL_Rect gHitPoints_rect;
+extern SDL_Rect gPlayarea;
+extern unsigned short int gCountdownSecCount;
+extern enum GameState gGameState;
+extern struct Player gPlayerBox;
+extern SDL_Rect gupgradeRects[5];  //end game message storage and rect 
+extern SDL_Texture *gupgradeTextures[5];
+extern short int gnumUpgrades;
+
 
 int main(int argc, char* args[])
 {
+	int w, h, i;
 	SDL_Window *window = NULL;
 	SDL_Renderer *renderer = NULL;
 
-	Mix_Chunk *wall = NULL;
-	Mix_Chunk *death = NULL;
-	Mix_Chunk *win = NULL;
-	
 	SDL_Texture *tFPS = NULL;
 
 	SDL_Texture *tgameover = NULL;
 	SDL_Texture *tvictory = NULL;
 	SDL_Texture *tcontinue = NULL;
 
-	SDL_Texture *tmoreAI = NULL;
-	SDL_Texture *thardGoal = NULL;
-	SDL_Texture *trecover = NULL;
-	SDL_Texture *tfasterAI = NULL;
-	SDL_Texture *tfasterrecharge = NULL;
-	SDL_Texture *yellowbox = NULL;
-
-	SDL_Rect upgradeRects[5];
-	SDL_Texture *upgradeTextures[5];
-
 	SDL_Rect countdownRects[3];
 	SDL_Texture *countdownTextures[3];
 
-	char buffer[100];
-	int quit = 0;
+	char buffer[15];
+	bool quit = false;
 	int result = 0;
-	short int isedgehit = 0;
-	short int invernable = 0;
-	short int inv_flash_count = 0;
-	short int inv_draw = 0;
-	short int gameover = 0;
-	short int victory = 0;
-	int inv_count = 0;
+	bool isEdgeHit = false;
+
+	bool drawFPS = false;	
 	int fps = 0; 
 	int framecount = 0; 
 	Uint32 startTick, currentTick; 
 	
 	SDL_Event e;
-	enum BoxColors playercolor = WHITE;
+	//enum BoxColors playercolor = WHITE;
 
 	SDL_Rect tempbox = { 0, 0, 0, 0 };
 
 	SDL_Rect gameover_rect, victory_rect, continue_rect, fps_rect;
-	int w, h, i;
-	
-	short int numUpgrades = 0;
 	const int END_TEXT_SPACING = 2;
+		
 
 	//initalize global variables
 	gSmallFont = NULL;
 	gLargeFont = NULL;	
+	gProgramState = GAME;
 	//end initalize global variables
 
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0)
@@ -155,10 +141,6 @@ int main(int argc, char* args[])
 	Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048);
 
 	loadGameResources(renderer);
-
-	wall = Mix_LoadWAV(WALL_SOUND);
-	death = Mix_LoadWAV(DEATH_SOUND);
-	win = Mix_LoadWAV(WIN_SOUND);
 	
 	sprintf_s(buffer, sizeof(buffer), "FPS: %02d", 0);
 	tFPS = makeTextTexture(renderer, gSmallFont, buffer, TEXT_COLOR, BG_COLOR, SHADED);
@@ -188,14 +170,7 @@ int main(int argc, char* args[])
 	continue_rect.h = h;
 	continue_rect.x = gPlayarea.x + gPlayarea.w / 2 - w / 2;
 	continue_rect.y = gPlayarea.y + gPlayarea.h / 2 - h / 2;
-
-	tmoreAI = makeTextTexture(renderer, gSmallFont, "You will now face more opposition.", TEXT_COLOR, BG_COLOR, BLENDED);
-	trecover = makeTextTexture(renderer, gSmallFont, "Good Work! You gain 1 hit point and a longer boost!", TEXT_COLOR, BG_COLOR, BLENDED);
-	thardGoal = makeTextTexture(renderer, gSmallFont, "Your goal will now behave more erratically.", TEXT_COLOR, BG_COLOR, BLENDED);
-	tfasterAI = makeTextTexture(renderer, gSmallFont, "Some of your opposition will now move faster.", TEXT_COLOR, BG_COLOR, BLENDED);
-	tfasterrecharge = makeTextTexture(renderer, gSmallFont, "Your boost will also recharge faster.", TEXT_COLOR, BG_COLOR, BLENDED);
-	yellowbox = makeTextTexture(renderer, gSmallFont, "A new challenge! The yellow box will home in on your position.", TEXT_COLOR, BG_COLOR, BLENDED);
-
+		
 	countdownTextures[0] = makeTextTexture(renderer, gLargeFont, "3", TEXT_COLOR, BG_COLOR, BLENDED);
 	countdownTextures[1] = makeTextTexture(renderer, gLargeFont, "2", TEXT_COLOR, BG_COLOR, BLENDED);
 	countdownTextures[2] = makeTextTexture(renderer, gLargeFont, "1", TEXT_COLOR, BG_COLOR, BLENDED);
@@ -208,9 +183,6 @@ int main(int argc, char* args[])
 		countdownRects[i].y = gPlayarea.y + gPlayarea.h / 2 - h / 2;
 	}
 
-	upgradeTextures[0] = tmoreAI; upgradeTextures[1] = tfasterAI; upgradeTextures[2] = thardGoal; //avoid NULL pointers 
-	upgradeTextures[3] = trecover; upgradeTextures[4] = tfasterrecharge;
-
 	resetGame(); //reset the global variables 
 	newGame(renderer); //start to configure a new game 
 
@@ -218,220 +190,101 @@ int main(int argc, char* args[])
 	fps = 0;
 	startTick = SDL_GetTicks();
 
-	while (quit == 0)
+	while (!quit)
 	{
 		while (SDL_PollEvent(&e) != 0)
 		{
-			if (e.type == SDL_QUIT)
-				quit = 1;
-		}
-
-
-		const Uint8 *currentKeyStates = SDL_GetKeyboardState(NULL);
-
-		if (gameover == 0 && victory == 0 && gIsCountdown == 0)
-		{
-			isedgehit = gameKeyboard(currentKeyStates);
-		}
-		else if (gameover == 1)
-		{
-			if (currentKeyStates[SDL_SCANCODE_RETURN])
+			switch (e.type)
 			{
-				gameover = 0;
-				invernable = 0;
-				isedgehit = 0;
-				resetGame(); //game is over so reset back to starting values
-				newGame(renderer); //then start a new game 
-				continue;
-			}
-
-		}
-		else if (victory == 1)
-		{
-			if (currentKeyStates[SDL_SCANCODE_RETURN])
-			{
-				victory = 0;
-				invernable = 0;
-				isedgehit = 0;
-				newGame(renderer);
-				continue;
-			}
-
-		}
-
-		//check for collision 
-		if (invernable == 0)
-		{
-			isedgehit = checkEnemyCollision();
-		}
-
-		if (invernable == 0 && victory == 0 && gameover == 0 &&
-			SDL_HasIntersection(&gPlayerBox, copyToSDLRect(&gGoalBox, &tempbox)) == SDL_TRUE)
-		{
-			victory = 1;
-			Mix_HaltMusic();
-			Mix_PlayChannel(-1, win, 0);
-
-			if (gLevel < 100)
-			{
-				gLevel++;
-				numUpgrades = 0;
-				if ((gLevel % 10) == 0)
+			case SDL_QUIT:
+				quit = true;
+				break;
+			case SDL_KEYDOWN:
+				switch (e.key.keysym.sym)
 				{
-					gBoostRecharge = gBoostRecharge + BOOST_RECHARGE_UPGRADE;
+				case SDLK_f:
+					drawFPS = !drawFPS; //draw FPS used on all screens and inputs 
+					break;
+				default:
+					break;
 				}
-				if ((gLevel % 5) == 0)
-				{
-					gHitPoints++;
-					gBoostDown = gBoostDown - BOOST_DOWN_UPGRADE;
-					upgradeTextures[numUpgrades] = trecover;
-					numUpgrades++;
-					if ((gLevel % 10) == 0)
-					{
-						gBoostRecharge = gBoostRecharge + BOOST_RECHARGE_UPGRADE;
-						upgradeTextures[numUpgrades] = tfasterrecharge;
-						numUpgrades++;
-					}
-				}
-				if ((gLevel % 2) == 0 && gNumAIs < MAX_AI_BOXES - 1)
-				{
-					gNumAIs++;
-					upgradeTextures[numUpgrades] = tmoreAI;
-					numUpgrades++;
-				}
-				if ((gLevel % 3) == 0)
-				{
-					gGoalBox.rand_direction = gGoalBox.rand_direction + 1;
-					upgradeTextures[numUpgrades] = thardGoal;
-					numUpgrades++;
-				}
-				if ((gLevel % 10) == 2 && gLevel > 10)
-				{
-					upgradeTextures[numUpgrades] = tfasterAI;
-					numUpgrades++;
-				}
-				if (gLevel == 10)
-				{
-					upgradeTextures[numUpgrades] = yellowbox;
-					numUpgrades++;
-				}
-				for (i = 0; i < numUpgrades; i++)
-				{
-					SDL_QueryTexture(upgradeTextures[i], NULL, NULL, &w, &h);
-					upgradeRects[i].w = w;
-					upgradeRects[i].h = h;
-					upgradeRects[i].x = gPlayarea.x + gPlayarea.w / 2 - w / 2;
-					upgradeRects[i].y = 0; //set later
-				}
+				break;
+			default:
+				break;
 			}
 		}
 
-		if (isedgehit == 1 && invernable == 0 && gameover == 0 && victory == 0)
-		{
-			if (gHitPoints <= 0)
-			{
-				gameover = 1;
-				Mix_HaltMusic();
-				Mix_PlayChannel(-1, death, 0);
+		if (gProgramState == GAME) //process keyboard live 
+			isEdgeHit = gameKeyboard(renderer);
 
-				if (gtHitPoints != NULL)
-					SDL_DestroyTexture(gtHitPoints);
-				gtHitPoints = makeTextTexture(renderer, gSmallFont, "Hit Points:  ", TEXT_COLOR, BG_COLOR, SHADED);
-				SDL_QueryTexture(gtHitPoints, NULL, NULL, &w, &h);
-				gHitPoints_rect.w = w;
-				gHitPoints_rect.h = h;
-			}
-			else
-			{
-				Mix_PlayChannel(-1, wall, 0);
-				playercolor = RED;
-				gHitPoints--;
-				invernable = 1;
-				inv_count = 0;
-				inv_draw = 1;
-				inv_flash_count = 0;
-
-				if (gtHitPoints != NULL)
-					SDL_DestroyTexture(gtHitPoints);
-				sprintf_s(buffer, sizeof(buffer), "Hit Points: %d", gHitPoints);
-				gtHitPoints = makeTextTexture(renderer, gSmallFont, buffer, TEXT_COLOR, BG_COLOR, SHADED);
-				SDL_QueryTexture(gtHitPoints, NULL, NULL, &w, &h);
-				gHitPoints_rect.w = w;
-				gHitPoints_rect.h = h;
-			}
-		}
-
-		if (invernable == 1)
-		{
-			inv_count++;
-			inv_flash_count++;
-			if (inv_flash_count >= INV_FLASH_FRAME)
-			{
-				inv_flash_count = 0;
-				playercolor = WHITE;
-				if (inv_draw == 1)
-					inv_draw = 0;
-				else
-					inv_draw = 1;
-			}
-
-			if (inv_count >= INV_FRAMES)
-			{
-				inv_count = 0;
-				invernable = 0;
-			}
-		}
-
-		processBoxMovement(victory); //process box movement
 		
-
-		//check countdown
-		if (gIsCountdown == 1)
-			processCountdown();
+		switch (gProgramState) //structure for processing logic
+		{
+		case GAME:
+			gameLogic(renderer, isEdgeHit);
+			break;
+		case SHELL:
+			break;
+		default:
+			break;
+		}		
 
 		//start drawing 
 		SDL_SetRenderDrawColor(renderer, 0, 0, 0, SDL_ALPHA_OPAQUE); //set clear color to black
 		SDL_RenderClear(renderer); //clear the screen
-		//draw the FPS text 
-		if (tFPS != NULL)
-			SDL_DestroyTexture(tFPS);
-		sprintf_s(buffer, sizeof(buffer), "FPS: %02d", fps);
-		tFPS = makeTextTexture(renderer, gSmallFont, buffer, TEXT_COLOR, BG_COLOR, SHADED);
-		SDL_RenderCopy(renderer, tFPS, NULL, &fps_rect);
 
-		drawPlayArea(renderer, playercolor,victory); //draw the header
+
+		drawPlayArea(renderer, gPlayerBox.color); //draw the header
 	
 		//if the logic is right draw the player box 
-		if (invernable == 1 && inv_draw == 1)
-			DrawBox(renderer, &gPlayerBox, playercolor);
-		else if (invernable == 0 && gameover == 0)
-			DrawBox(renderer, &gPlayerBox, playercolor);
+		tempbox.x = gPlayerBox.x;
+		tempbox.y = gPlayerBox.y;
+		tempbox.w = gPlayerBox.w;
+		tempbox.h = gPlayerBox.h;
 
-		if (gameover == 1) //draw game over text 
+		if (gPlayerBox.invernable && gPlayerBox.inv_draw)
+			DrawBox(renderer, &tempbox, gPlayerBox.color);
+		else if (!gPlayerBox.invernable && gGameState != GAMEOVER && gGameState != NOGAME)
+			DrawBox(renderer, &tempbox, gPlayerBox.color);
+
+		switch (gGameState) // draw overlay text based on the game state
 		{
+		case GAMEOVER:
 			SDL_RenderCopy(renderer, tgameover, NULL, &gameover_rect); //if the game is over draw the Game Over text 
 			continue_rect.y = gameover_rect.y + gameover_rect.h + END_TEXT_SPACING;
 			SDL_RenderCopy(renderer, tcontinue, NULL, &continue_rect);
-		}
-		if (victory == 1) //draw win text and any notifications 
-		{
+			break;
+		case VICTORY:
 			SDL_RenderCopy(renderer, tvictory, NULL, &victory_rect); //if the game is won draw the Victory text 
 			continue_rect.y = victory_rect.y + victory_rect.h + END_TEXT_SPACING;
 			SDL_RenderCopy(renderer, tcontinue, NULL, &continue_rect);
-			if (numUpgrades > 0)
+			if (gnumUpgrades > 0)
 			{
-				upgradeRects[0].y = continue_rect.y + continue_rect.h + END_TEXT_SPACING;
-				SDL_RenderCopy(renderer, upgradeTextures[0], NULL, &upgradeRects[0]);
-				for (i = 1; i < numUpgrades; i++)
+				gupgradeRects[0].y = continue_rect.y + continue_rect.h + END_TEXT_SPACING;
+				SDL_RenderCopy(renderer, gupgradeTextures[0], NULL, &gupgradeRects[0]);
+				for (i = 1; i < gnumUpgrades; i++)
 				{
-					upgradeRects[i].y = upgradeRects[i - 1].y + upgradeRects[i - 1].h + END_TEXT_SPACING;
-					SDL_RenderCopy(renderer, upgradeTextures[i], NULL, &upgradeRects[i]);
+					gupgradeRects[i].y = gupgradeRects[i - 1].y + gupgradeRects[i - 1].h + END_TEXT_SPACING;
+					SDL_RenderCopy(renderer, gupgradeTextures[i], NULL, &gupgradeRects[i]);
 				}
 			}
-		}
-		//draw the countdown if in countdown
-		if (gIsCountdown)
+			break;
+		case COUNTDOWN:
 			SDL_RenderCopy(renderer, countdownTextures[gCountdownSecCount], NULL, &countdownRects[gCountdownSecCount]);
+			break;
+		default:
+			break;
+		}
+
+		//draw the FPS text - all game states 
+		if (drawFPS)
+		{
+			if (tFPS != NULL)
+				SDL_DestroyTexture(tFPS);
+			sprintf_s(buffer, sizeof(buffer), "FPS: %02d", fps);
+			tFPS = makeTextTexture(renderer, gSmallFont, buffer, TEXT_COLOR, BG_COLOR, SHADED);
+			SDL_RenderCopy(renderer, tFPS, NULL, &fps_rect);
+		}
 
 		SDL_RenderPresent(renderer); //present the frame 
 
@@ -444,7 +297,7 @@ int main(int argc, char* args[])
 			framecount = 0;
 
 			//update the timer if the game is still running
-			if (victory == 0 && gameover == 0 && gIsCountdown == 0) 
+			if (gGameState == GAMEPLAY) 
 			{
 				updateGameTimer(renderer);
 			}
@@ -461,24 +314,12 @@ int main(int argc, char* args[])
 
 	freeGameResources();
 	
-	Mix_FreeChunk(wall);
-	Mix_FreeChunk(death);
-	Mix_FreeChunk(win);
-	
 	SDL_DestroyTexture(tFPS);
 	SDL_DestroyTexture(tgameover);
 	SDL_DestroyTexture(tvictory);
 	SDL_DestroyTexture(tcontinue);
 	for (i = 0; i < 3; i++)
 		SDL_DestroyTexture(countdownTextures[i]);
-
-
-	SDL_DestroyTexture(tmoreAI);
-	SDL_DestroyTexture(trecover);
-	SDL_DestroyTexture(thardGoal);
-	SDL_DestroyTexture(tfasterAI);
-	SDL_DestroyTexture(tfasterrecharge);
-	SDL_DestroyTexture(yellowbox);
 
 	TTF_CloseFont(gSmallFont);
 	TTF_CloseFont(gLargeFont);

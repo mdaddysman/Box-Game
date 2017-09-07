@@ -12,13 +12,19 @@ int gLevel, gHitPoints, gNumAIs; //the current Level, Hit Points, and the speed 
 float gBoostPool, gBoostDown, gBoostRecharge; //the Boost pool in percent. float for fraction and how fast it charges and recharges
 int gLeftEdge, gRightEdge, gTopEdge, gBottomEdge; //define the edges of the playfield for bounds checking
 unsigned long int gCurrentLevelTime, gPreviousLevelTime; //keep track of the times being played
-short int gIsCountdown, gCountdownSecCount; //is the countdown running?
+unsigned short int gCountdownSecCount; //how many seconds have run off the countdown 
 Uint32 gStartLevelTick;
 Mix_Music *gMusic;
-Mix_Chunk *gCountdownSound;
+Mix_Chunk *gCountdownSound, *gHitSound, *gDeathSound, *gWinSound;;
 SDL_Texture *gtLevelNumber, *gtHitPoints, *gtBoost, *gtTime;
-SDL_Rect gLevel_rect, gHitPoints_rect, gBoost_rect, gBoostmeter_rect, gBoostdeplet_rect, gTime_rect, gPlayerBox, gBorder, gPlayarea;
+SDL_Rect gLevel_rect, gHitPoints_rect, gBoost_rect, gBoostmeter_rect, gBoostdeplet_rect, gTime_rect, gBorder, gPlayarea;
+SDL_Texture *gtmoreAI, *gthardGoal, *gtrecover, *gtfasterAI, *gtfasterrecharge, *gtyellowbox; //end game messages
+SDL_Rect gupgradeRects[5];  //end game message storage and rect 
+SDL_Texture *gupgradeTextures[5];
+short int gnumUpgrades;
+struct Player gPlayerBox;
 struct AIBox gGoalBox, gEnemyBox[MAX_AI_BOXES];
+enum GameState gGameState;
 
 //extern fonts
 extern TTF_Font *gSmallFont, *gLargeFont;
@@ -29,16 +35,32 @@ void loadGameResources(SDL_Renderer *r)
 	//initalize global variables 
 	gMusic = NULL;
 	gCountdownSound = NULL;
+	gHitSound = NULL;
+	gDeathSound = NULL;
+	gWinSound = NULL;
 	gtLevelNumber = NULL;
 	gtHitPoints = NULL;
 	gtBoost = NULL;
 	gtTime = NULL;
 
+	gtmoreAI = NULL;
+	gthardGoal = NULL;
+	gtrecover = NULL;
+	gtfasterAI = NULL;
+	gtfasterrecharge = NULL;
+	gtyellowbox = NULL;
+
+	
 
 	gPlayerBox.x = 200;
 	gPlayerBox.y = 200;
 	gPlayerBox.w = PLAYERBOX_WIDTH;
 	gPlayerBox.h = PLAYERBOX_HEIGHT;
+	gPlayerBox.color = WHITE;
+	gPlayerBox.invernable = false;
+	gPlayerBox.inv_draw = false;
+	gPlayerBox.inv_count = 0;
+	gPlayerBox.inv_flash_count = 0;
 
 	gGoalBox.x = 200;
 	gGoalBox.y = 200;
@@ -88,11 +110,16 @@ void loadGameResources(SDL_Renderer *r)
 	gTopEdge = gPlayarea.y;
 	gRightEdge = gPlayarea.x + gPlayarea.w - PLAYERBOX_WIDTH;
 	gBottomEdge = gPlayarea.y + gPlayarea.h - PLAYERBOX_HEIGHT;
+
+	gGameState = NOGAME;
 	//end initalize global variables 
 
 	//load global resources
 	gMusic = Mix_LoadMUS(GAME_MUSIC);
 	gCountdownSound = Mix_LoadWAV(COUNTDOWN_SOUND);
+	gHitSound = Mix_LoadWAV(WALL_SOUND);
+	gDeathSound = Mix_LoadWAV(DEATH_SOUND);
+	gWinSound = Mix_LoadWAV(WIN_SOUND);
 
 	gtBoost = makeTextTexture(r, gSmallFont, "Boost:", TEXT_COLOR, BG_COLOR, SHADED);
 	SDL_QueryTexture(gtBoost, NULL, NULL, &w, &h);
@@ -100,6 +127,17 @@ void loadGameResources(SDL_Renderer *r)
 	gBoost_rect.y = PLAYAREA_PADDING;
 	gBoost_rect.w = w;
 	gBoost_rect.h = h;
+
+	gtmoreAI = makeTextTexture(r, gSmallFont, "You will now face more opposition.", TEXT_COLOR, BG_COLOR, BLENDED);
+	gtrecover = makeTextTexture(r, gSmallFont, "Good Work! You gain 1 hit point and a longer boost!", TEXT_COLOR, BG_COLOR, BLENDED);
+	gthardGoal = makeTextTexture(r, gSmallFont, "Your goal will now behave more erratically.", TEXT_COLOR, BG_COLOR, BLENDED);
+	gtfasterAI = makeTextTexture(r, gSmallFont, "Some of your opposition will now move faster.", TEXT_COLOR, BG_COLOR, BLENDED);
+	gtfasterrecharge = makeTextTexture(r, gSmallFont, "Your boost will also recharge faster.", TEXT_COLOR, BG_COLOR, BLENDED);
+	gtyellowbox = makeTextTexture(r, gSmallFont, "A new challenge! The yellow box will home in on your position.", TEXT_COLOR, BG_COLOR, BLENDED);
+
+	gupgradeTextures[0] = gtmoreAI; gupgradeTextures[1] = gtfasterAI; gupgradeTextures[2] = gthardGoal; //avoid NULL pointers 
+	gupgradeTextures[3] = gtrecover; gupgradeTextures[4] = gtfasterrecharge;
+
 }
 
 void freeGameResources(void)
@@ -109,6 +147,15 @@ void freeGameResources(void)
 
 	if (gCountdownSound != NULL)
 		Mix_FreeChunk(gCountdownSound);
+
+	if (gHitSound != NULL)
+		Mix_FreeChunk(gHitSound);
+
+	if (gDeathSound != NULL)
+		Mix_FreeChunk(gDeathSound);
+
+	if (gWinSound != NULL)
+		Mix_FreeChunk(gWinSound);
 
 	if (gtLevelNumber != NULL)
 		SDL_DestroyTexture(gtLevelNumber);
@@ -121,6 +168,24 @@ void freeGameResources(void)
 
 	if (gtTime != NULL)
 		SDL_DestroyTexture(gtTime);
+
+	if (gtmoreAI != NULL)
+	SDL_DestroyTexture(gtmoreAI);
+
+	if (gtrecover != NULL)
+	SDL_DestroyTexture(gtrecover);
+
+	if (gthardGoal != NULL)
+	SDL_DestroyTexture(gthardGoal);
+
+	if (gtfasterAI != NULL)
+	SDL_DestroyTexture(gtfasterAI);
+
+	if (gtfasterrecharge != NULL)
+	SDL_DestroyTexture(gtfasterrecharge);
+
+	if (gtyellowbox != NULL)
+	SDL_DestroyTexture(gtyellowbox);
 }
 
 
@@ -141,7 +206,7 @@ void newGame(SDL_Renderer *r)
 {
 
 	char buffer[100];
-	int w, h, i;
+	int w, h, i, j;
 	unsigned long int m, s;
 	short int done;
 	double playerbuffer = PLAYER_BUFFER*PLAYER_BUFFER;
@@ -150,6 +215,7 @@ void newGame(SDL_Renderer *r)
 
 
 	gBoostPool = MAX_BOOST;
+	gnumUpgrades = 0;
 
 	if (gtLevelNumber != NULL)
 		SDL_DestroyTexture(gtLevelNumber);
@@ -200,55 +266,281 @@ void newGame(SDL_Renderer *r)
 
 	gPlayerBox.x = rnd(gPlayarea.w - 2 * edgebuffer) + gPlayarea.x + edgebuffer;
 	gPlayerBox.y = rnd(gPlayarea.h - 2 * edgebuffer) + gPlayarea.y + edgebuffer;
+	gPlayerBox.color = WHITE;
+	gPlayerBox.invernable = false;
+	gPlayerBox.inv_draw = false;
+	gPlayerBox.inv_count = 0;
+	gPlayerBox.inv_flash_count = 0;
 
-	done = 0;
-
-	while (done == 0)
+	done = 0; j = 0; 
+	while (done == 0 && j < MAX_BUFFER_SEARCH)
 	{
 		gGoalBox.x = rnd(gPlayarea.w - 2 * edgebuffer) + gPlayarea.x + edgebuffer;
 		gGoalBox.y = rnd(gPlayarea.h - 2 * edgebuffer) + gPlayarea.y + edgebuffer;
 		distance = SDL_pow((double)(gPlayerBox.x - gGoalBox.x), 2) + SDL_pow((double)(gPlayerBox.y - gGoalBox.y), 2);  //keeping everything squared to save time 
 		if (distance > playerbuffer)
 			done = 1;
+		j++;
 	}
 	gGoalBox.direction = rnd(numMoveDirection);
-
+#ifdef _DEBUG_BUILD_
+	printf("Level %d:\nFound Goal Box location in %d loops.\n",gLevel, j);
+#endif
 	for (i = 0; i < gNumAIs; i++)
 	{
-		done = 0;
-		while (done == 0)
+		done = 0; j = 0;
+		while (done == 0 && j < MAX_BUFFER_SEARCH)
 		{
 			gEnemyBox[i].x = rnd(gPlayarea.w - 2 * edgebuffer) + gPlayarea.x + edgebuffer;
 			gEnemyBox[i].y = rnd(gPlayarea.h - 2 * edgebuffer) + gPlayarea.y + edgebuffer;
 			distance = SDL_pow((double)(gPlayerBox.x - gEnemyBox[i].x), 2) + SDL_pow((double)(gPlayerBox.y - gEnemyBox[i].y), 2);
 			if (distance > playerbuffer)
 				done = 1;
+			j++;
 		}
 		gEnemyBox[i].direction = rnd(numMoveDirection);
+#ifdef _DEBUG_BUILD_
+		printf("Found Enemy Box %d location in %d loops.\n", i, j);
+#endif
 	}
 
-	gIsCountdown = 1;
+	gGameState = COUNTDOWN;
 	gCountdownSecCount = 0;
 	gStartLevelTick = SDL_GetTicks();
 	Mix_PlayChannel(-1, gCountdownSound, 0);
 }
 
-short int checkEnemyCollision(void)
-{
-	int i;
-	short int isHit = 0;
-	SDL_Rect tempbox;
 
-	for (i = 0; i < gNumAIs; i++)
+
+bool gameKeyboard(SDL_Renderer *r)
+{
+	int movespeed = 2; //pixels moved per frame 
+	bool isedgehit = false;
+
+	const Uint8 *currentKeyStates = SDL_GetKeyboardState(NULL);
+
+	switch (gGameState)
 	{
-		if (SDL_HasIntersection(&gPlayerBox, copyToSDLRect(&gEnemyBox[i], &tempbox)) == SDL_TRUE)
+	case GAMEPLAY:
+		if (currentKeyStates[SDL_SCANCODE_LCTRL] || currentKeyStates[SDL_SCANCODE_RCTRL])
 		{
-			isHit = 1; // treat like a collision
-			break; //don't need to check anymore 
+			if (gBoostPool > 0)
+				movespeed = 4;
+
+			gBoostPool = gBoostPool - gBoostDown;
+			if (gBoostPool < 0)
+				gBoostPool = 0;
+		}
+		else
+		{
+			gBoostPool = gBoostPool + gBoostRecharge;
+			if (gBoostPool > MAX_BOOST)
+				gBoostPool = MAX_BOOST;
+		}
+
+		if (currentKeyStates[SDL_SCANCODE_UP] && !currentKeyStates[SDL_SCANCODE_DOWN])
+			gPlayerBox.y = gPlayerBox.y - movespeed;
+		else if (currentKeyStates[SDL_SCANCODE_DOWN] && !currentKeyStates[SDL_SCANCODE_UP])
+			gPlayerBox.y = gPlayerBox.y + movespeed;
+		if (currentKeyStates[SDL_SCANCODE_LEFT] && !currentKeyStates[SDL_SCANCODE_RIGHT])
+			gPlayerBox.x = gPlayerBox.x - movespeed;
+		else if (currentKeyStates[SDL_SCANCODE_RIGHT] && !currentKeyStates[SDL_SCANCODE_LEFT])
+			gPlayerBox.x = gPlayerBox.x + movespeed;
+
+		if (gPlayerBox.x < gLeftEdge)
+		{
+			gPlayerBox.x = gLeftEdge;
+			isedgehit = true;
+		}
+		else if (gPlayerBox.x > gRightEdge)
+		{
+			gPlayerBox.x = gRightEdge;
+			isedgehit = true;
+		}
+
+		if (gPlayerBox.y < gTopEdge)
+		{
+			gPlayerBox.y = gTopEdge;
+			isedgehit = true;
+		}
+		else if (gPlayerBox.y > gBottomEdge)
+		{
+			gPlayerBox.y = gBottomEdge;
+			isedgehit = true;
+		}
+		break;
+	case GAMEOVER:
+		if (currentKeyStates[SDL_SCANCODE_RETURN])
+		{
+			gPlayerBox.invernable = false;
+			isedgehit = false;
+			resetGame(); //game is over so reset back to starting values
+			newGame(r); //then start a new game 
+		}
+		break;
+	case VICTORY:
+		if (currentKeyStates[SDL_SCANCODE_RETURN])
+		{
+			gPlayerBox.invernable = false;
+			isedgehit = false;
+			newGame(r);
+		}
+		break;
+	default:
+		break;
+	}
+
+	return(isedgehit);
+}
+
+void gameLogic(SDL_Renderer *r, bool isedgehit)
+{
+	int i, w, h;
+	char buffer[20];
+	SDL_Rect temprect;
+	SDL_Rect playerrect = {
+		gPlayerBox.x,
+		gPlayerBox.y,
+		gPlayerBox.w,
+		gPlayerBox.h
+	};
+
+	//process game movement and win / lose conditions 
+	//check for collision 
+	if (!gPlayerBox.invernable && !isedgehit)
+	{
+		for (i = 0; i < gNumAIs; i++)
+		{
+			if (SDL_HasIntersection(&playerrect, copyToSDLRect(&gEnemyBox[i], &temprect)) == SDL_TRUE)
+			{
+				isedgehit = true; // treat like a collision
+				break; //don't need to check anymore 
+			}
+		}
+	}
+		
+
+
+	if (!gPlayerBox.invernable && gGameState == GAMEPLAY &&
+		SDL_HasIntersection(&playerrect, copyToSDLRect(&gGoalBox, &temprect)) == SDL_TRUE)
+	{
+		gGameState = VICTORY;
+		Mix_HaltMusic();
+		Mix_PlayChannel(-1, gWinSound, 0);
+
+		if (gLevel < 100)
+		{
+			gLevel++;
+			gnumUpgrades = 0;
+			if ((gLevel % 10) == 0)
+			{
+				gBoostRecharge = gBoostRecharge + BOOST_RECHARGE_UPGRADE;
+			}
+			if ((gLevel % 5) == 0)
+			{
+				gHitPoints++;
+				gBoostDown = gBoostDown - BOOST_DOWN_UPGRADE;
+				gupgradeTextures[gnumUpgrades] = gtrecover;
+				gnumUpgrades++;
+				if ((gLevel % 10) == 0)
+				{
+					gBoostRecharge = gBoostRecharge + BOOST_RECHARGE_UPGRADE;
+					gupgradeTextures[gnumUpgrades] = gtfasterrecharge;
+					gnumUpgrades++;
+				}
+			}
+			if ((gLevel % 2) == 0 && gNumAIs < MAX_AI_BOXES - 1)
+			{
+				gNumAIs++;
+				gupgradeTextures[gnumUpgrades] = gtmoreAI;
+				gnumUpgrades++;
+			}
+			if ((gLevel % 3) == 0)
+			{
+				gGoalBox.rand_direction = gGoalBox.rand_direction + 1;
+				gupgradeTextures[gnumUpgrades] = gthardGoal;
+				gnumUpgrades++;
+			}
+			if ((gLevel % 10) == 2 && gLevel > 10)
+			{
+				gupgradeTextures[gnumUpgrades] = gtfasterAI;
+				gnumUpgrades++;
+			}
+			if (gLevel == 10)
+			{
+				gupgradeTextures[gnumUpgrades] = gtyellowbox;
+				gnumUpgrades++;
+			}
+			for (i = 0; i < gnumUpgrades; i++)
+			{
+				SDL_QueryTexture(gupgradeTextures[i], NULL, NULL, &w, &h);
+				gupgradeRects[i].w = w;
+				gupgradeRects[i].h = h;
+				gupgradeRects[i].x = gPlayarea.x + gPlayarea.w / 2 - w / 2;
+				gupgradeRects[i].y = 0; //set later
+			}
 		}
 	}
 
-	return(isHit);
+	if (isedgehit && !gPlayerBox.invernable && gGameState == GAMEPLAY)
+	{
+		if (gHitPoints <= 0)
+		{
+			gGameState = GAMEOVER;
+			Mix_HaltMusic();
+			Mix_PlayChannel(-1, gDeathSound, 0);
+
+			if (gtHitPoints != NULL)
+				SDL_DestroyTexture(gtHitPoints);
+			gtHitPoints = makeTextTexture(r, gSmallFont, "Hit Points:  ", TEXT_COLOR, BG_COLOR, SHADED);
+			SDL_QueryTexture(gtHitPoints, NULL, NULL, &w, &h);
+			gHitPoints_rect.w = w;
+			gHitPoints_rect.h = h;
+		}
+		else
+		{
+			Mix_PlayChannel(-1, gHitSound, 0);
+			gPlayerBox.color = RED;
+			gHitPoints--;
+			gPlayerBox.invernable = true;
+			gPlayerBox.inv_count = 0;
+			gPlayerBox.inv_draw = true;
+			gPlayerBox.inv_flash_count = 0;
+
+			if (gtHitPoints != NULL)
+				SDL_DestroyTexture(gtHitPoints);
+			sprintf_s(buffer, sizeof(buffer), "Hit Points: %d", gHitPoints);
+			gtHitPoints = makeTextTexture(r, gSmallFont, buffer, TEXT_COLOR, BG_COLOR, SHADED);
+			SDL_QueryTexture(gtHitPoints, NULL, NULL, &w, &h);
+			gHitPoints_rect.w = w;
+			gHitPoints_rect.h = h;
+		}
+	}
+
+	if (gPlayerBox.invernable)
+	{
+		gPlayerBox.inv_count++;
+		gPlayerBox.inv_flash_count++;
+		if (gPlayerBox.inv_flash_count >= INV_FLASH_FRAME)
+		{
+			gPlayerBox.inv_flash_count = 0;
+			gPlayerBox.color = WHITE;
+			gPlayerBox.inv_draw = !gPlayerBox.inv_draw;
+		}
+
+		if (gPlayerBox.inv_count >= INV_FRAMES)
+		{
+			gPlayerBox.inv_count = 0;
+			gPlayerBox.invernable = false;
+		}
+	}
+
+	processBoxMovement(); //process box movement
+
+
+	//check countdown
+	if (gGameState == COUNTDOWN)
+		processCountdown();
 }
 
 void processCountdown(void)
@@ -262,15 +554,15 @@ void processCountdown(void)
 		gCountdownSecCount = 2;
 	else if (currentTick >= 3000)
 	{
-		gIsCountdown = 0;
+		gGameState = GAMEPLAY;
 		Mix_PlayMusic(gMusic, -1);
 	}
 }
 
-void processBoxMovement(short int isVictory)
+void processBoxMovement()
 {
 	int i;
-	if (isVictory == 0 && gIsCountdown == 0)
+	if (gGameState == GAMEPLAY || gGameState == GAMEOVER)
 	{
 		moveAIBox(&gGoalBox);
 		for (i = 0; i < gNumAIs; i++)
@@ -278,62 +570,7 @@ void processBoxMovement(short int isVictory)
 	}
 }
 
-short int gameKeyboard(const Uint8 *currentKeyStates)
-{
-	int movespeed = 2; //pixels moved per frame 
-	short int isedgehit = 0;
-
-	if (currentKeyStates[SDL_SCANCODE_LCTRL] || currentKeyStates[SDL_SCANCODE_RCTRL])
-	{
-		if (gBoostPool > 0)
-			movespeed = 4;
-
-		gBoostPool = gBoostPool - gBoostDown;
-		if (gBoostPool < 0)
-			gBoostPool = 0;
-	}
-	else
-	{
-		gBoostPool = gBoostPool + gBoostRecharge;
-		if (gBoostPool > MAX_BOOST)
-			gBoostPool = MAX_BOOST;
-	}
-
-	if (currentKeyStates[SDL_SCANCODE_UP] && !currentKeyStates[SDL_SCANCODE_DOWN])
-		gPlayerBox.y = gPlayerBox.y - movespeed;
-	else if (currentKeyStates[SDL_SCANCODE_DOWN] && !currentKeyStates[SDL_SCANCODE_UP])
-		gPlayerBox.y = gPlayerBox.y + movespeed;
-	if (currentKeyStates[SDL_SCANCODE_LEFT] && !currentKeyStates[SDL_SCANCODE_RIGHT])
-		gPlayerBox.x = gPlayerBox.x - movespeed;
-	else if (currentKeyStates[SDL_SCANCODE_RIGHT] && !currentKeyStates[SDL_SCANCODE_LEFT])
-		gPlayerBox.x = gPlayerBox.x + movespeed;
-
-	if (gPlayerBox.x < gLeftEdge)
-	{
-		gPlayerBox.x = gLeftEdge;
-		isedgehit = 1;
-	}
-	else if (gPlayerBox.x > gRightEdge)
-	{
-		gPlayerBox.x = gRightEdge;
-		isedgehit = 1;
-	}
-
-	if (gPlayerBox.y < gTopEdge)
-	{
-		gPlayerBox.y = gTopEdge;
-		isedgehit = 1;
-	}
-	else if (gPlayerBox.y > gBottomEdge)
-	{
-		gPlayerBox.y = gBottomEdge;
-		isedgehit = 1;
-	}
-
-	return(isedgehit);
-}
-
-void drawPlayArea(SDL_Renderer *r, enum BoxColors playercolor, short int isVictory)
+void drawPlayArea(SDL_Renderer *r, enum BoxColors playercolor)
 {
 	SDL_Rect tempbox;
 	int i;
@@ -356,7 +593,7 @@ void drawPlayArea(SDL_Renderer *r, enum BoxColors playercolor, short int isVicto
 
 	//draw the dynamic boxes
 	DrawBox(r, copyToSDLRect(&gGoalBox, &tempbox), gGoalBox.color);
-	if (isVictory == 0)
+	if (gGameState != VICTORY && gGameState != NOGAME)
 	{
 		for (i = 0; i < gNumAIs; i++)
 			DrawBox(r, copyToSDLRect(&gEnemyBox[i], &tempbox), gEnemyBox[i].color);

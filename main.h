@@ -22,7 +22,7 @@
 //constants 
 static const int SCREEN_WIDTH = 800;
 static const int SCREEN_HEIGHT = 600;
-static const int STALE_RANDOM = 50000;
+static const unsigned int STALE_RANDOM = 50000;
 
 static const int SCOREBAR_HEIGHT = 30;
 static const int PLAYAREA_PADDING = 4;
@@ -44,6 +44,7 @@ static const float BOOST_RECHARGE_START = 0.5;
 static const float BOOST_DOWN_UPGRADE = (float) 0.07;
 static const float BOOST_RECHARGE_UPGRADE = (float) 0.1;
 
+static const int END_TEXT_SPACING = 2;
 
 static const int INV_FRAMES = 60; //number of frame to be invernable after a hit - 1 sec 
 static const int INV_FLASH_FRAME = 5; //on/off frames to flash to show invernablility 
@@ -97,7 +98,7 @@ void gameLogic(SDL_Renderer *r, bool isedgehit);
 void updateGameTimer(SDL_Renderer *r);
 void processBoxMovement();
 void processCountdown(void);
-void drawPlayArea(SDL_Renderer *r, enum BoxColors playercolor);
+void drawPlayArea(SDL_Renderer *r);
 void moveAIBox(struct AIBox *ai);
 void changeAIBoxCoordinates(struct AIBox *ai);
 int checkAIBoxDirection(struct AIBox *ai);

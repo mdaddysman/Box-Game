@@ -8,43 +8,21 @@
 #include "main.h"
 
 //global variables 
-int gRandCount; // number of times the random number generator has been called 
+unsigned int gRandCount; // number of times the random number generator has been called 
 TTF_Font *gSmallFont, *gLargeFont;
 enum ProgramState gProgramState;
 
-//game globals to extern 
-extern int gLeftEdge, gRightEdge, gTopEdge, gBottomEdge; //define the edges of the playfield for bounds checking 
-
-
-
-//remove these externs with more work
-extern SDL_Rect gPlayarea;
-extern unsigned short int gCountdownSecCount;
-extern enum GameState gGameState;
-extern struct Player gPlayerBox;
-extern SDL_Rect gupgradeRects[5];  //end game message storage and rect 
-extern SDL_Texture *gupgradeTextures[5];
-extern short int gnumUpgrades;
-
-
 int main(int argc, char* args[])
 {
-	int w, h, i;
+	int w, h;
+	int result = 0;
+	char buffer[15];
 	SDL_Window *window = NULL;
 	SDL_Renderer *renderer = NULL;
 
-	SDL_Texture *tFPS = NULL;
-
-	SDL_Texture *tgameover = NULL;
-	SDL_Texture *tvictory = NULL;
-	SDL_Texture *tcontinue = NULL;
-
-	SDL_Rect countdownRects[3];
-	SDL_Texture *countdownTextures[3];
-
-	char buffer[15];
-	bool quit = false;
-	int result = 0;
+	SDL_Texture *tFPS = NULL;	
+	
+	bool quit = false;	
 	bool isEdgeHit = false;
 
 	bool drawFPS = false;	
@@ -53,13 +31,9 @@ int main(int argc, char* args[])
 	Uint32 startTick, currentTick; 
 	
 	SDL_Event e;
-	//enum BoxColors playercolor = WHITE;
 
 	SDL_Rect tempbox = { 0, 0, 0, 0 };
-
-	SDL_Rect gameover_rect, victory_rect, continue_rect, fps_rect;
-	const int END_TEXT_SPACING = 2;
-		
+	SDL_Rect fps_rect;		
 
 	//initalize global variables
 	gSmallFont = NULL;
@@ -149,40 +123,7 @@ int main(int argc, char* args[])
 	fps_rect.y = PLAYAREA_PADDING;
 	fps_rect.w = w;
 	fps_rect.h = h;
-
-	tgameover = makeTextTexture(renderer, gLargeFont, "GAME OVER", TEXT_COLOR, BG_COLOR, BLENDED);
-	SDL_QueryTexture(tgameover, NULL, NULL, &w, &h);
-	gameover_rect.w = w;
-	gameover_rect.h = h;
-	gameover_rect.x = gPlayarea.x + gPlayarea.w / 2 - w / 2;
-	gameover_rect.y = gPlayarea.y + gPlayarea.h / 2 - h / 2;
-
-	tvictory = makeTextTexture(renderer, gLargeFont, "Level Complete!", TEXT_COLOR, BG_COLOR, BLENDED);
-	SDL_QueryTexture(tvictory, NULL, NULL, &w, &h);
-	victory_rect.w = w;
-	victory_rect.h = h;
-	victory_rect.x = gPlayarea.x + gPlayarea.w / 2 - w / 2;
-	victory_rect.y = gPlayarea.y + gPlayarea.h / 2 - h / 2;
-
-	tcontinue = makeTextTexture(renderer, gSmallFont, "Press ENTER to continue", TEXT_COLOR, BG_COLOR, BLENDED);
-	SDL_QueryTexture(tcontinue, NULL, NULL, &w, &h);
-	continue_rect.w = w;
-	continue_rect.h = h;
-	continue_rect.x = gPlayarea.x + gPlayarea.w / 2 - w / 2;
-	continue_rect.y = gPlayarea.y + gPlayarea.h / 2 - h / 2;
-		
-	countdownTextures[0] = makeTextTexture(renderer, gLargeFont, "3", TEXT_COLOR, BG_COLOR, BLENDED);
-	countdownTextures[1] = makeTextTexture(renderer, gLargeFont, "2", TEXT_COLOR, BG_COLOR, BLENDED);
-	countdownTextures[2] = makeTextTexture(renderer, gLargeFont, "1", TEXT_COLOR, BG_COLOR, BLENDED);
-	for (i = 0; i < 3; i++)
-	{
-		SDL_QueryTexture(countdownTextures[i], NULL, NULL, &w, &h);
-		countdownRects[i].w = w;
-		countdownRects[i].h = h;
-		countdownRects[i].x = gPlayarea.x + gPlayarea.w / 2 - w / 2;
-		countdownRects[i].y = gPlayarea.y + gPlayarea.h / 2 - h / 2;
-	}
-
+	
 	resetGame(); //reset the global variables 
 	newGame(renderer); //start to configure a new game 
 
@@ -214,7 +155,7 @@ int main(int argc, char* args[])
 			}
 		}
 
-		if (gProgramState == GAME) //process keyboard live 
+		if (gProgramState == GAME) //process keyboard live for game
 			isEdgeHit = gameKeyboard(renderer);
 
 		
@@ -233,44 +174,12 @@ int main(int argc, char* args[])
 		SDL_SetRenderDrawColor(renderer, 0, 0, 0, SDL_ALPHA_OPAQUE); //set clear color to black
 		SDL_RenderClear(renderer); //clear the screen
 
-
-		drawPlayArea(renderer, gPlayerBox.color); //draw the header
-	
-		//if the logic is right draw the player box 
-		tempbox.x = gPlayerBox.x;
-		tempbox.y = gPlayerBox.y;
-		tempbox.w = gPlayerBox.w;
-		tempbox.h = gPlayerBox.h;
-
-		if (gPlayerBox.invernable && gPlayerBox.inv_draw)
-			DrawBox(renderer, &tempbox, gPlayerBox.color);
-		else if (!gPlayerBox.invernable && gGameState != GAMEOVER && gGameState != NOGAME)
-			DrawBox(renderer, &tempbox, gPlayerBox.color);
-
-		switch (gGameState) // draw overlay text based on the game state
+		switch (gProgramState)
 		{
-		case GAMEOVER:
-			SDL_RenderCopy(renderer, tgameover, NULL, &gameover_rect); //if the game is over draw the Game Over text 
-			continue_rect.y = gameover_rect.y + gameover_rect.h + END_TEXT_SPACING;
-			SDL_RenderCopy(renderer, tcontinue, NULL, &continue_rect);
+		case GAME:
+			drawPlayArea(renderer); //draw the playfield
 			break;
-		case VICTORY:
-			SDL_RenderCopy(renderer, tvictory, NULL, &victory_rect); //if the game is won draw the Victory text 
-			continue_rect.y = victory_rect.y + victory_rect.h + END_TEXT_SPACING;
-			SDL_RenderCopy(renderer, tcontinue, NULL, &continue_rect);
-			if (gnumUpgrades > 0)
-			{
-				gupgradeRects[0].y = continue_rect.y + continue_rect.h + END_TEXT_SPACING;
-				SDL_RenderCopy(renderer, gupgradeTextures[0], NULL, &gupgradeRects[0]);
-				for (i = 1; i < gnumUpgrades; i++)
-				{
-					gupgradeRects[i].y = gupgradeRects[i - 1].y + gupgradeRects[i - 1].h + END_TEXT_SPACING;
-					SDL_RenderCopy(renderer, gupgradeTextures[i], NULL, &gupgradeRects[i]);
-				}
-			}
-			break;
-		case COUNTDOWN:
-			SDL_RenderCopy(renderer, countdownTextures[gCountdownSecCount], NULL, &countdownRects[gCountdownSecCount]);
+		case SHELL:
 			break;
 		default:
 			break;
@@ -296,16 +205,21 @@ int main(int argc, char* args[])
 			fps = framecount+1;
 			framecount = 0;
 
-			//update the timer if the game is still running
-			if (gGameState == GAMEPLAY) 
+			switch (gProgramState)
 			{
+			case GAME:
 				updateGameTimer(renderer);
+				break;
+			case SHELL:
+				break;
+			default:
+				break;
 			}
+			
 		}
 		else
 		{
 			framecount++;
-
 		}
 	}
 
@@ -315,11 +229,6 @@ int main(int argc, char* args[])
 	freeGameResources();
 	
 	SDL_DestroyTexture(tFPS);
-	SDL_DestroyTexture(tgameover);
-	SDL_DestroyTexture(tvictory);
-	SDL_DestroyTexture(tcontinue);
-	for (i = 0; i < 3; i++)
-		SDL_DestroyTexture(countdownTextures[i]);
 
 	TTF_CloseFont(gSmallFont);
 	TTF_CloseFont(gLargeFont);

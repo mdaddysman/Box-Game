@@ -22,4 +22,5 @@ Resources:
 - `Sounds/fail.wav`
 - `Sounds/success.wav`
 - `Fonts/RipeApricots.ttf`
+- `Fonts/EBGaramond.ttf`
 

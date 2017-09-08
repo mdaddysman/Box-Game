@@ -9,8 +9,15 @@
 
 //global variables 
 unsigned int gRandCount; // number of times the random number generator has been called 
-TTF_Font *gSmallFont, *gLargeFont;
+TTF_Font *gSmallFont, *gLargeFont, *gMenuFont;
 enum ProgramState gProgramState;
+
+void MoveToGame(SDL_Renderer *r)
+{
+	resetGame(); //reset the global variables 
+	newGame(r); //start to configure a new game 
+	gProgramState = GAME;
+}
 
 int main(int argc, char* args[])
 {
@@ -38,7 +45,7 @@ int main(int argc, char* args[])
 	//initalize global variables
 	gSmallFont = NULL;
 	gLargeFont = NULL;	
-	gProgramState = GAME;
+	gProgramState = SHELL;
 	//end initalize global variables
 
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0)
@@ -86,7 +93,19 @@ int main(int argc, char* args[])
 		return(0);
 	}
 
-	gSmallFont = TTF_OpenFont(FONT_FILE, 36);
+	gMenuFont = TTF_OpenFont(MENU_FONT_FILE, 32);
+	if (gMenuFont == NULL)
+	{
+		printf("Font could not be loaded Error:%s\n", SDL_GetError());
+		SDL_DestroyRenderer(renderer);
+		SDL_DestroyWindow(window);
+		TTF_Quit();
+		Mix_Quit();
+		SDL_Quit();
+		return(0);
+	}
+
+	gSmallFont = TTF_OpenFont(GAME_FONT_FILE, 36);
 	if (gSmallFont == NULL)
 	{
 		printf("Font could not be loaded Error:%s\n", SDL_GetError());
@@ -98,7 +117,7 @@ int main(int argc, char* args[])
 		return(0);
 	}
 
-	gLargeFont = TTF_OpenFont(FONT_FILE, 144);
+	gLargeFont = TTF_OpenFont(GAME_FONT_FILE, 144);
 	if (gLargeFont == NULL)
 	{
 		printf("Large font could not be loaded Error:%s\n", SDL_GetError());
@@ -114,6 +133,7 @@ int main(int argc, char* args[])
 
 	Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048);
 
+	loadShellResources(renderer);
 	loadGameResources(renderer);
 	
 	sprintf_s(buffer, sizeof(buffer), "FPS: %02d", 0);
@@ -122,11 +142,8 @@ int main(int argc, char* args[])
 	fps_rect.x = SCREEN_WIDTH - PLAYAREA_PADDING - w - 5;
 	fps_rect.y = PLAYAREA_PADDING;
 	fps_rect.w = w;
-	fps_rect.h = h;
+	fps_rect.h = h;	
 	
-	resetGame(); //reset the global variables 
-	newGame(renderer); //start to configure a new game 
-
 	framecount = 0;
 	fps = 0;
 	startTick = SDL_GetTicks();
@@ -141,6 +158,8 @@ int main(int argc, char* args[])
 				quit = true;
 				break;
 			case SDL_KEYDOWN:
+				if (gProgramState == SHELL)
+					quit = shellKeyboard(&e, renderer);
 				switch (e.key.keysym.sym)
 				{
 				case SDLK_f:
@@ -180,6 +199,7 @@ int main(int argc, char* args[])
 			drawPlayArea(renderer); //draw the playfield
 			break;
 		case SHELL:
+			drawShell(renderer); //draw the menu 
 			break;
 		default:
 			break;
@@ -226,10 +246,12 @@ int main(int argc, char* args[])
 	//program is ending free all the resources 
 	Mix_HaltMusic();
 
+	freeShellResources();
 	freeGameResources();
 	
 	SDL_DestroyTexture(tFPS);
 
+	TTF_CloseFont(gMenuFont);
 	TTF_CloseFont(gSmallFont);
 	TTF_CloseFont(gLargeFont);
 

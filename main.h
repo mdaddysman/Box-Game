@@ -36,7 +36,8 @@ static const char *WALL_SOUND = "Sounds/fail.wav";
 static const char *DEATH_SOUND = "Sounds/explosion.wav";
 static const char *WIN_SOUND = "Sounds/success.wav";
 static const char *COUNTDOWN_SOUND = "Sounds/countdown.wav";
-static const char *FONT_FILE = "Fonts/RipeApricots.ttf";
+static const char *GAME_FONT_FILE = "Fonts/RipeApricots.ttf";
+static const char *MENU_FONT_FILE = "Fonts/EBGaramond.ttf";
 
 static const float MAX_BOOST = 100;
 static const float BOOST_DOWN_START = 1.5;
@@ -62,6 +63,7 @@ enum BoxColors { BLACK = 0, WHITE, RED, BLUE, ORANGE, GREEN, YELLOW };
 enum TextType { SOLID = 0, SHADED, BLENDED };
 enum MoveDirection { NORTH = 0, SOUTH, EAST, WEST, NORTHEAST, NORTHWEST, SOUTHEAST, SOUTHWEST, numMoveDirection };
 enum AIType {RANDOM = 0, SEEK, NONE};
+enum MenuOptions {STARTGAME = 0, HOWTOPLAY, HIGHSCORES, OPTIONS, EXIT, numMenuOptions};
 
 struct AIBox {
 	int x;
@@ -103,7 +105,15 @@ void moveAIBox(struct AIBox *ai);
 void changeAIBoxCoordinates(struct AIBox *ai);
 int checkAIBoxDirection(struct AIBox *ai);
 
+
+//found in shell.c
+void loadShellResources(SDL_Renderer *r);
+void freeShellResources(void);
+bool shellKeyboard(SDL_Event *e, SDL_Renderer *r);
+void drawShell(SDL_Renderer *r);
+
 //found in main.c
+void MoveToGame(SDL_Renderer *r);
 void DrawBox(SDL_Renderer *r, SDL_Rect *box, enum BoxColors color);
 SDL_Texture* makeTextTexture(SDL_Renderer *r, TTF_Font *font, const char *text, SDL_Color fg, SDL_Color bg, enum TextType tt);
 SDL_Rect* copyToSDLRect(struct AIBox *ai, SDL_Rect *sdl);

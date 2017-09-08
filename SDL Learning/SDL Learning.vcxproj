@@ -74,6 +74,7 @@
   <ItemGroup>
     <ClCompile Include="..\game.c" />
     <ClCompile Include="..\main.c" />
+    <ClCompile Include="..\shell.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\main.h" />

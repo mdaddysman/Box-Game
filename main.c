@@ -19,6 +19,11 @@ void MoveToGame(SDL_Renderer *r)
 	gProgramState = GAME;
 }
 
+void MoveToShell(void)
+{
+	gProgramState = SHELL;
+}
+
 int main(int argc, char* args[])
 {
 	int w, h;
@@ -30,6 +35,10 @@ int main(int argc, char* args[])
 	SDL_Texture *tFPS = NULL;
 	SDL_Texture *tLoading = NULL;
 	SDL_Rect Loading_rect;
+	SDL_Rect Clipping_rect = {
+		0, 0,
+		SCREEN_WIDTH, SCREEN_HEIGHT
+	};
 	
 	bool quit = false;	
 	bool isEdgeHit = false;
@@ -96,6 +105,8 @@ int main(int argc, char* args[])
 		SDL_Quit();
 		return(0);
 	}
+	if (SDL_RenderSetClipRect(renderer, &Clipping_rect) < 0)
+		printf("Clipping not set. Error: %s\n", SDL_GetError());
 
 	gMenuFont = TTF_OpenFont(MENU_FONT_FILE, 32);
 	if (gMenuFont == NULL)
@@ -227,6 +238,7 @@ int main(int argc, char* args[])
 			gameLogic(renderer, isEdgeHit);
 			break;
 		case SHELL:
+			shellLogic();
 			break;
 		default:
 			break;

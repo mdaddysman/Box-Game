@@ -435,8 +435,9 @@ bool gameKeyboard(SDL_Renderer *r)
 		{
 			gPlayerBox.invernable = false;
 			isedgehit = false;
-			resetGame(); //game is over so reset back to starting values
-			newGame(r); //then start a new game 
+			//resetGame(); //game is over so reset back to starting values
+			//newGame(r); //then start a new game 
+			MoveToShell();
 		}
 		break;
 	case VICTORY:

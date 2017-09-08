@@ -17,10 +17,12 @@ The following dll's must be copied to the Debug folder:
 
 Resources: 
 - `Music/Game1.mp3`
+- `Music/Menu.mp3`
 - `Sounds/countdown.wav`
 - `Sounds/explosion.wav`
 - `Sounds/fail.wav`
 - `Sounds/success.wav`
+- `Sounds/menuclick.wav`
 - `Fonts/RipeApricots.ttf`
 - `Fonts/EBGaramond.ttf`
 

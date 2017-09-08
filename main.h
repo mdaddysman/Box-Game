@@ -33,10 +33,12 @@ static const int PLAYERBOX_HEIGHT = 10;
 static const int MAX_BUFFER_SEARCH = 1000; //max number of loops to find a buffer away from box 
 
 static const char *GAME_MUSIC = "Music/Game1.mp3";
+static const char *MENU_MUSIC = "Music/Menu.mp3";
 static const char *WALL_SOUND = "Sounds/fail.wav";
 static const char *DEATH_SOUND = "Sounds/explosion.wav";
 static const char *WIN_SOUND = "Sounds/success.wav";
 static const char *COUNTDOWN_SOUND = "Sounds/countdown.wav";
+static const char *CLICK_SOUND = "Sounds/menuclick.wav";
 static const char *GAME_FONT_FILE = "Fonts/RipeApricots.ttf";
 static const char *MENU_FONT_FILE = "Fonts/EBGaramond.ttf";
 
@@ -56,6 +58,7 @@ static const SDL_Color TEXT_COLOR = { 255, 255, 255 };
 static const SDL_Color BG_COLOR = { 0, 0, 0 };
 
 #define MAX_AI_BOXES 50
+#define NUM_MENU_BOXES 50
 
 //custom data types 
 enum ProgrameState {SHELL = 0, GAME};
@@ -111,10 +114,13 @@ int checkAIBoxDirection(struct AIBox *ai);
 void loadShellResources(SDL_Renderer *r);
 void freeShellResources(void);
 bool shellKeyboard(SDL_Event *e, SDL_Renderer *r);
+void shellLogic(void);
 void drawShell(SDL_Renderer *r);
+void moveShellAIBox(struct AIBox *ai);
 
 //found in main.c
 void MoveToGame(SDL_Renderer *r);
+void MoveToShell(void);
 void DrawBox(SDL_Renderer *r, SDL_Rect *box, enum BoxColors color);
 SDL_Texture* makeTextTexture(SDL_Renderer *r, TTF_Font *font, const char *text, SDL_Color fg, SDL_Color bg, enum TextType tt);
 SDL_Rect* copyToSDLRect(struct AIBox *ai, SDL_Rect *sdl);

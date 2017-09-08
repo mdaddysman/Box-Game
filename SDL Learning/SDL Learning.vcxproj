@@ -51,7 +51,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>C:\sdl2\lib\x86</AdditionalLibraryDirectories>
       <AdditionalDependencies>SDL2.lib; SDL2main.lib; SDL2_mixer.lib; SDL2_ttf.lib</AdditionalDependencies>
-      <SubSystem>Windows</SubSystem>
+      <SubSystem>Console</SubSystem>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -72,6 +72,7 @@
     <None Include="..\Readme.md" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\game.c" />
     <ClCompile Include="..\main.c" />
   </ItemGroup>
   <ItemGroup>

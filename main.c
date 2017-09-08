@@ -9,7 +9,7 @@
 
 //global variables 
 unsigned int gRandCount; // number of times the random number generator has been called 
-TTF_Font *gSmallFont, *gLargeFont, *gMenuFont;
+TTF_Font *gSmallFont, *gLargeFont, *gMenuFont, *gMenuFontSmall;
 enum ProgramState gProgramState;
 
 void MoveToGame(SDL_Renderer *r)
@@ -27,7 +27,9 @@ int main(int argc, char* args[])
 	SDL_Window *window = NULL;
 	SDL_Renderer *renderer = NULL;
 
-	SDL_Texture *tFPS = NULL;	
+	SDL_Texture *tFPS = NULL;
+	SDL_Texture *tLoading = NULL;
+	SDL_Rect Loading_rect;
 	
 	bool quit = false;	
 	bool isEdgeHit = false;
@@ -45,6 +47,8 @@ int main(int argc, char* args[])
 	//initalize global variables
 	gSmallFont = NULL;
 	gLargeFont = NULL;	
+	gMenuFont = NULL;
+	gMenuFontSmall = NULL;
 	gProgramState = SHELL;
 	//end initalize global variables
 
@@ -104,6 +108,29 @@ int main(int argc, char* args[])
 		SDL_Quit();
 		return(0);
 	}
+	//now that the basics are loaded display a loading message
+	tLoading = makeTextTexture(renderer, gMenuFont, "Loading...", TEXT_COLOR, BG_COLOR, SOLID);
+	SDL_QueryTexture(tLoading, NULL, NULL, &w, &h);
+	Loading_rect.x = (SCREEN_WIDTH - w) / 2;
+	Loading_rect.y = (SCREEN_HEIGHT - h) / 2;
+	Loading_rect.w = w;
+	Loading_rect.h = h;
+	SDL_SetRenderDrawColor(renderer, 0, 0, 0, SDL_ALPHA_OPAQUE); //set clear color to black
+	SDL_RenderClear(renderer); //clear the screen
+	SDL_RenderCopy(renderer, tLoading, NULL, &Loading_rect);
+	SDL_RenderPresent(renderer); //present the frame 
+
+	gMenuFontSmall = TTF_OpenFont(MENU_FONT_FILE, 16);
+	if (gMenuFont == NULL)
+	{
+		printf("Font could not be loaded Error:%s\n", SDL_GetError());
+		SDL_DestroyRenderer(renderer);
+		SDL_DestroyWindow(window);
+		TTF_Quit();
+		Mix_Quit();
+		SDL_Quit();
+		return(0);
+	}
 
 	gSmallFont = TTF_OpenFont(GAME_FONT_FILE, 36);
 	if (gSmallFont == NULL)
@@ -128,13 +155,24 @@ int main(int argc, char* args[])
 		SDL_Quit();
 		return(0);
 	}
-
+#ifdef _DEBUG_BUILD_
+	printf("Main resources loaded\n");
+#endif
 	seedrnd();
 
 	Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048);
+#ifdef _DEBUG_BUILD_
+	printf("Audio open\n");
+#endif
 
 	loadShellResources(renderer);
+#ifdef _DEBUG_BUILD_
+	printf("Shell resources loaded\n");
+#endif
 	loadGameResources(renderer);
+#ifdef _DEBUG_BUILD_
+	printf("Game resources loaded\n");
+#endif
 	
 	sprintf_s(buffer, sizeof(buffer), "FPS: %02d", 0);
 	tFPS = makeTextTexture(renderer, gSmallFont, buffer, TEXT_COLOR, BG_COLOR, SHADED);
@@ -147,7 +185,12 @@ int main(int argc, char* args[])
 	framecount = 0;
 	fps = 0;
 	startTick = SDL_GetTicks();
-
+	if (tLoading != NULL)
+		SDL_DestroyTexture(tLoading); //clean up the loading text
+	tLoading = NULL;
+#ifdef _DEBUG_BUILD_
+	printf("Entering game loop\n");
+#endif
 	while (!quit)
 	{
 		while (SDL_PollEvent(&e) != 0)
@@ -247,16 +290,33 @@ int main(int argc, char* args[])
 	Mix_HaltMusic();
 
 	freeShellResources();
+#ifdef _DEBUG_BUILD_
+	printf("Shell resources free\n");
+#endif
 	freeGameResources();
+#ifdef _DEBUG_BUILD_
+	printf("Game resource free\n");
+#endif
 	
-	SDL_DestroyTexture(tFPS);
+	if (tFPS != NULL)
+		SDL_DestroyTexture(tFPS);
 
-	TTF_CloseFont(gMenuFont);
-	TTF_CloseFont(gSmallFont);
-	TTF_CloseFont(gLargeFont);
-
-	SDL_DestroyRenderer(renderer);
-	SDL_DestroyWindow(window);
+	if (gMenuFont != NULL)
+		TTF_CloseFont(gMenuFont);
+	if (gMenuFont != NULL)
+		TTF_CloseFont(gMenuFontSmall);
+	if (gMenuFont != NULL)
+		TTF_CloseFont(gSmallFont);
+	if (gMenuFont != NULL)
+		TTF_CloseFont(gLargeFont);
+	
+	if (renderer != NULL)
+		SDL_DestroyRenderer(renderer);
+	if (window != NULL)
+		SDL_DestroyWindow(window);
+#ifdef _DEBUG_BUILD_
+	printf("Main resource free\n");
+#endif
 	TTF_Quit();
 	Mix_Quit();
 	SDL_Quit();

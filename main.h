@@ -8,6 +8,7 @@
 # ifndef _MAIN_H_
 # define _MAIN_H_
 
+#define _CRT_SECURE_NO_WARNINGS
 #include <SDL.h>
 #include <SDL_mixer.h>
 #include <SDL_ttf.h>
@@ -18,7 +19,7 @@
 
 //game build settings
 #define _DEBUG_BUILD_ //should debug text be shown 
-#define BUILD_NUMBER 200
+#define BUILD_NUMBER 210
 
 //constants 
 static const int SCREEN_WIDTH = 800;
@@ -32,6 +33,7 @@ static const int PLAYAREA_BORDER = 6;
 static const int PLAYERBOX_WIDTH = 10;
 static const int PLAYERBOX_HEIGHT = 10;
 static const int MAX_BUFFER_SEARCH = 1000; //max number of loops to find a buffer away from box 
+static const int MAX_VOLUME = 100;
 
 static const char *GAME_MUSIC = "Music/Game1.mp3";
 static const char *MENU_MUSIC = "Music/Menu.mp3";
@@ -42,6 +44,7 @@ static const char *COUNTDOWN_SOUND = "Sounds/countdown.wav";
 static const char *CLICK_SOUND = "Sounds/menuclick.wav";
 static const char *GAME_FONT_FILE = "Fonts/RipeApricots.ttf";
 static const char *MENU_FONT_FILE = "Fonts/EBGaramond.ttf";
+static const char *SAVE_DATA = "data.dat";
 
 static const float MAX_BOOST = 100;
 static const float BOOST_DOWN_START = 1.5;
@@ -70,6 +73,7 @@ enum MoveDirection { NORTH = 0, SOUTH, EAST, WEST, NORTHEAST, NORTHWEST, SOUTHEA
 enum AIType {RANDOM = 0, SEEK, NONE};
 enum MenuOptions {STARTGAME = 0, HOWTOPLAY, HIGHSCORES, OPTIONS, EXIT, numMenuOptions};
 enum CurrentMenu {MAIN_MENU = 0, HOWTOPLAY_MENU, HIGHSCORES_MENU, OPTIONS_MENU};
+enum OptionsMenuOptions {MASTERVOLUME = 0, MUSICVOLUME, SOUNDVOLUME, FPSONOFF, BACK_OPTIONS };
 
 struct AIBox {
 	int x;
@@ -118,9 +122,12 @@ void checkEndGame(void);
 void loadShellResources(SDL_Renderer *r);
 void freeShellResources(void);
 bool shellKeyboard(SDL_Event *e, SDL_Renderer *r);
-void shellLogic(void);
+void shellLogic(SDL_Renderer *r);
 void drawShell(SDL_Renderer *r);
 void moveShellAIBox(struct AIBox *ai);
+void updateVolumes(void);
+void openSaveData(void);
+void writeGameDataFile(void);
 
 //found in main.c
 void MoveToGame(SDL_Renderer *r);

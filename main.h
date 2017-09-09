@@ -18,11 +18,12 @@
 
 //game build settings
 #define _DEBUG_BUILD_ //should debug text be shown 
-#define BUILD_NUMBER 100
+#define BUILD_NUMBER 200
 
 //constants 
 static const int SCREEN_WIDTH = 800;
 static const int SCREEN_HEIGHT = 600;
+static const char *GAME_NAME = "KAESTCHENSPIEL";
 static const unsigned int STALE_RANDOM = 50000;
 
 static const int SCOREBAR_HEIGHT = 30;
@@ -63,11 +64,12 @@ static const SDL_Color BG_COLOR = { 0, 0, 0 };
 //custom data types 
 enum ProgrameState {SHELL = 0, GAME};
 enum GameState { GAMEPLAY = 0, GAMEOVER, VICTORY, COUNTDOWN, NOGAME };
-enum BoxColors { BLACK = 0, WHITE, RED, BLUE, ORANGE, GREEN, YELLOW };
+enum BoxColors { BLACK = 0, WHITE, RED, BLUE, ORANGE, GREEN, YELLOW, TRANSPARENT_BLACK };
 enum TextType { SOLID = 0, SHADED, BLENDED };
 enum MoveDirection { NORTH = 0, SOUTH, EAST, WEST, NORTHEAST, NORTHWEST, SOUTHEAST, SOUTHWEST, numMoveDirection };
 enum AIType {RANDOM = 0, SEEK, NONE};
 enum MenuOptions {STARTGAME = 0, HOWTOPLAY, HIGHSCORES, OPTIONS, EXIT, numMenuOptions};
+enum CurrentMenu {MAIN_MENU = 0, HOWTOPLAY_MENU, HIGHSCORES_MENU, OPTIONS_MENU};
 
 struct AIBox {
 	int x;
@@ -108,6 +110,8 @@ void drawPlayArea(SDL_Renderer *r);
 void moveAIBox(struct AIBox *ai);
 void changeAIBoxCoordinates(struct AIBox *ai);
 int checkAIBoxDirection(struct AIBox *ai);
+bool pauseGame(SDL_Keycode keycode);
+void checkEndGame(void);
 
 
 //found in shell.c

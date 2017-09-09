@@ -83,7 +83,7 @@ int main(int argc, char* args[])
 		return(0);
 	}
 
-	window = SDL_CreateWindow("Star Box", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+	window = SDL_CreateWindow(GAME_NAME, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
 		SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
 
 	if (window == NULL)
@@ -107,6 +107,8 @@ int main(int argc, char* args[])
 	}
 	if (SDL_RenderSetClipRect(renderer, &Clipping_rect) < 0)
 		printf("Clipping not set. Error: %s\n", SDL_GetError());
+	if (SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND) < 0)
+		printf("Blending not set. Error: %s\n", SDL_GetError());
 
 	gMenuFont = TTF_OpenFont(MENU_FONT_FILE, 32);
 	if (gMenuFont == NULL)
@@ -204,6 +206,7 @@ int main(int argc, char* args[])
 #endif
 	while (!quit)
 	{
+		isEdgeHit = false;
 		while (SDL_PollEvent(&e) != 0)
 		{
 			switch (e.type)
@@ -216,6 +219,19 @@ int main(int argc, char* args[])
 					quit = shellKeyboard(&e, renderer);
 				switch (e.key.keysym.sym)
 				{
+				case SDLK_ESCAPE:
+				case SDLK_UP:
+				case SDLK_DOWN:
+					if (gProgramState == GAME)
+						isEdgeHit = pauseGame(e.key.keysym.sym);
+					break;
+				case SDLK_RETURN:
+					if (gProgramState == GAME)
+					{
+						checkEndGame();
+						isEdgeHit = pauseGame(e.key.keysym.sym);
+					}
+					break;
 				case SDLK_f:
 					drawFPS = !drawFPS; //draw FPS used on all screens and inputs 
 					break;
@@ -228,7 +244,7 @@ int main(int argc, char* args[])
 			}
 		}
 
-		if (gProgramState == GAME) //process keyboard live for game
+		if (gProgramState == GAME && !isEdgeHit) //process keyboard live for game
 			isEdgeHit = gameKeyboard(renderer);
 
 		
@@ -337,7 +353,7 @@ int main(int argc, char* args[])
 
 void DrawBox(SDL_Renderer *r, SDL_Rect *box, enum BoxColors color)
 {
-	//enum BoxColors {BLACK = 0, WHITE, RED, BLUE, ORANGE, GREEN}
+	Uint8 a; 
 	switch (color)
 	{
 	case WHITE:
@@ -360,6 +376,10 @@ void DrawBox(SDL_Renderer *r, SDL_Rect *box, enum BoxColors color)
 		break;
 	case YELLOW:
 		SDL_SetRenderDrawColor(r, 255, 255, 0, SDL_ALPHA_OPAQUE);
+		break;
+	case TRANSPARENT_BLACK:
+		a = (Uint8)(0.75 * SDL_ALPHA_OPAQUE); //25% transparent 
+		SDL_SetRenderDrawColor(r, 0, 0, 0, a);
 		break;
 	default:
 		SDL_SetRenderDrawColor(r, 0, 0, 0, SDL_ALPHA_OPAQUE);

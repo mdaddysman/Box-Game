@@ -20,9 +20,13 @@ Mix_Chunk *gClickSound;
 SDL_Texture *gtMasterVolume, *gtMusicVolume, *gtSoundVolume, *gtFPSOnOff;
 SDL_Rect gMasterVolume_rect, gMusicVolume_rect, gSoundVolume_rect, gFPSOnOff_rect;
 int gMasterVolume, gMusicVolume, gSoundVolume; //volume levels 
+SDL_Texture *gtNameTitle, *gtLevelTitle, *gtTimeTitle, *gtRanking[10], *gtHSPlayerNames[10], *gtHSLevels[10], *gtHSTimes[10];
+SDL_Rect gNameTitle_rect, gLevelTitle_rect, gTimeTitle_rect, gRanking_rect[10], gHSPlayerNames_rect[10], gHSLevels_rect[10], gHSTimes_rect[10];
 
 struct AIBox gMenuBoxes[NUM_MENU_BOXES];
 static const int MENU_BOX_SIZE = 10;
+
+struct HighScore gHighScores[10];
 
 extern TTF_Font *gSmallFont, *gLargeFont, *gMenuFont, *gMenuFontSmall; //extern fonts
 extern bool gDrawFPS; 
@@ -56,6 +60,17 @@ void loadShellResources(SDL_Renderer *r)
 	gtMusicVolume = NULL; 
 	gtSoundVolume = NULL; 
 	gtFPSOnOff = NULL;
+
+	gtNameTitle = NULL;
+	gtLevelTitle = NULL;
+	gtTimeTitle = NULL;
+	for (i = 0; i < 10; i++)
+	{
+		gtRanking[i] = NULL;
+		gtHSPlayerNames[i] = NULL; 
+		gtHSLevels[i] = NULL;
+		gtHSTimes[i] = NULL;
+	}
 
 	gMasterVolume = MAX_VOLUME;
 	gSoundVolume = MAX_VOLUME;
@@ -137,6 +152,8 @@ void loadShellResources(SDL_Renderer *r)
 			gMenuBoxes[i].color = ORANGE;
 	}
 	gClickSound = Mix_LoadWAV(CLICK_SOUND);
+
+	resetHighScores(); //initalize high scores
 	//end main and general menu resources
 
 	//load the save values and set
@@ -205,6 +222,45 @@ void loadShellResources(SDL_Renderer *r)
 	gHighScores_rect.y = 10;
 	gHighScores_rect.w = w;
 	gHighScores_rect.h = h;
+
+	gtNameTitle = makeTextTexture(r, gMenuFont, "Player", TEXT_COLOR, BG_COLOR, BLENDED);
+	SDL_QueryTexture(gtNameTitle, NULL, NULL, &w, &h);
+	gNameTitle_rect.x = 75;
+	gNameTitle_rect.y = gHighScores_rect.y + gHighScores_rect.h + 5;
+	gNameTitle_rect.w = w;
+	gNameTitle_rect.h = h;
+
+	gtLevelTitle = makeTextTexture(r, gMenuFont, "Level", TEXT_COLOR, BG_COLOR, BLENDED);
+	SDL_QueryTexture(gtLevelTitle, NULL, NULL, &w, &h);
+	gLevelTitle_rect.x = gNameTitle_rect.x + 6 * gNameTitle_rect.w;
+	gLevelTitle_rect.y = gNameTitle_rect.y;
+	gLevelTitle_rect.w = w;
+	gLevelTitle_rect.h = h;
+
+	gtTimeTitle = makeTextTexture(r, gMenuFont, "Time", TEXT_COLOR, BG_COLOR, BLENDED);
+	SDL_QueryTexture(gtTimeTitle, NULL, NULL, &w, &h);
+	gTimeTitle_rect.x = SCREEN_WIDTH - w - 10;
+	gTimeTitle_rect.y = gNameTitle_rect.y;
+	gTimeTitle_rect.w = w;
+	gTimeTitle_rect.h = h;
+
+	gtRanking[0] = makeTextTexture(r, gMenuFont, "1", TEXT_COLOR, BG_COLOR, BLENDED);
+	SDL_QueryTexture(gtRanking[0], NULL, NULL, &w, &h);
+	gRanking_rect[0].x = 25;
+	gRanking_rect[0].y = gNameTitle_rect.y + gNameTitle_rect.h + 5;
+	gRanking_rect[0].w = w;
+	gRanking_rect[0].h = h;
+
+	for (i = 1; i < 10; i++)
+	{
+		sprintf_s(buffer, sizeof(buffer), "%d", i + 1);
+		gtRanking[i] = makeTextTexture(r, gMenuFont, buffer, TEXT_COLOR, BG_COLOR, BLENDED);
+		SDL_QueryTexture(gtRanking[i], NULL, NULL, &w, &h);
+		gRanking_rect[i].x = gRanking_rect[0].x;
+		gRanking_rect[i].y = gRanking_rect[i - 1].y + gRanking_rect[i - 1].h - 8;
+		gRanking_rect[i].w = w;
+		gRanking_rect[i].h = h;
+	}
 	//end high scores menu
 
 
@@ -261,11 +317,88 @@ void freeShellResources(void)
 	if (gtFPSOnOff != NULL)
 		SDL_DestroyTexture(gtFPSOnOff);
 
+	if (gtNameTitle != NULL)
+		SDL_DestroyTexture(gtNameTitle);
+
+	if (gtLevelTitle != NULL)
+		SDL_DestroyTexture(gtLevelTitle);
+
+	if (gtTimeTitle != NULL)
+		SDL_DestroyTexture(gtTimeTitle);
+	
+	for (i = 0; i < 10; i++)
+	{
+		if (gtRanking[i] != NULL)
+			SDL_DestroyTexture(gtRanking[i]);
+
+		if (gtHSPlayerNames[i] != NULL)
+			SDL_DestroyTexture(gtHSPlayerNames[i]);
+
+		if (gtHSLevels[i] != NULL)
+			SDL_DestroyTexture(gtHSLevels[i]);
+
+		if (gtHSTimes[i] != NULL)
+			SDL_DestroyTexture(gtHSTimes[i]);
+	}
+
 	if (gMenuMusic != NULL)
 		Mix_FreeMusic(gMenuMusic);
 
 	if (gClickSound != NULL)
 		Mix_FreeChunk(gClickSound);
+}
+
+void openHighScoresScreen(SDL_Renderer *r)
+{
+	int i, w, h, m, s;
+	char buffer[10];
+	//first clean up the old textures - if they exist 
+	for (i = 0; i < 10; i++)
+	{
+		if (gtHSPlayerNames[i] != NULL)
+			SDL_DestroyTexture(gtHSPlayerNames[i]);
+
+		if (gtHSLevels[i] != NULL)
+			SDL_DestroyTexture(gtHSLevels[i]);
+
+		if (gtHSTimes[i] != NULL)
+			SDL_DestroyTexture(gtHSTimes[i]);
+	}
+
+	//now loop through the high scores structure and make the textures
+	for (i = 0; i < 10; i++)
+	{
+		if (gHighScores[i].level < 1) //if it is an empty score
+			break; //end the loop
+		else
+		{
+			gtHSPlayerNames[i] = makeTextTexture(r, gMenuFont, gHighScores[i].Name, TEXT_COLOR, BG_COLOR, BLENDED);
+			SDL_QueryTexture(gtHSPlayerNames[i], NULL, NULL, &w, &h);
+			gHSPlayerNames_rect[i].x = gNameTitle_rect.x;
+			gHSPlayerNames_rect[i].y = gRanking_rect[i].y;
+			gHSPlayerNames_rect[i].w = w;
+			gHSPlayerNames_rect[i].h = h;
+
+			sprintf_s(buffer, sizeof(buffer), "%d", gHighScores[i].level);
+			gtHSLevels[i] = makeTextTexture(r, gMenuFont, buffer, TEXT_COLOR, BG_COLOR, BLENDED);
+			SDL_QueryTexture(gtHSLevels[i], NULL, NULL, &w, &h);
+			gHSLevels_rect[i].x = gLevelTitle_rect.x + gLevelTitle_rect.w - w;
+			gHSLevels_rect[i].y = gRanking_rect[i].y;
+			gHSLevels_rect[i].w = w;
+			gHSLevels_rect[i].h = h;
+
+			m = gHighScores[i].time / 60;
+			s = gHighScores[i].time - m * 60;
+			sprintf_s(buffer, sizeof(buffer), "%02d:%02d", m, s);
+			gtHSTimes[i] = makeTextTexture(r, gMenuFont, buffer, TEXT_COLOR, BG_COLOR, BLENDED);
+			SDL_QueryTexture(gtHSTimes[i], NULL, NULL, &w, &h);
+			gHSTimes_rect[i].x = gTimeTitle_rect.x + gTimeTitle_rect.w - w;
+			gHSTimes_rect[i].y = gRanking_rect[i].y;
+			gHSTimes_rect[i].w = w;
+			gHSTimes_rect[i].h = h;
+		}
+
+	}
 }
 
 bool shellKeyboard(SDL_Event *e, SDL_Renderer *r)
@@ -301,6 +434,7 @@ bool shellKeyboard(SDL_Event *e, SDL_Renderer *r)
 				break;
 			case HIGHSCORES:
 				Mix_PlayChannel(-1, gClickSound, 0);
+				openHighScoresScreen(r);
 				gCurrentMenu = HIGHSCORES_MENU;
 				break;
 			case OPTIONS:
@@ -540,6 +674,22 @@ void drawShell(SDL_Renderer *r)
 		break;
 	case HIGHSCORES_MENU:
 		SDL_RenderCopy(r, gtHighScores, NULL, &gHighScores_rect); //draw title
+		SDL_RenderCopy(r, gtNameTitle, NULL, &gNameTitle_rect); //draw the name title column
+		SDL_RenderCopy(r, gtLevelTitle, NULL, &gLevelTitle_rect); //draw the level title column
+		SDL_RenderCopy(r, gtTimeTitle, NULL, &gTimeTitle_rect); //draw the time title column
+		for (i = 0; i < 10; i++)
+			SDL_RenderCopy(r, gtRanking[i], NULL, &gRanking_rect[i]); //draw the numbers
+		for (i = 0; i < 10; i++) //draw the high scores
+		{
+			if (gtHSPlayerNames[i] != NULL)
+				SDL_RenderCopy(r, gtHSPlayerNames[i], NULL, &gHSPlayerNames_rect[i]);
+
+			if (gtHSLevels[i] != NULL)
+				SDL_RenderCopy(r, gtHSLevels[i], NULL, &gHSLevels_rect[i]);
+
+			if (gtHSTimes[i] != NULL)
+				SDL_RenderCopy(r, gtHSTimes[i], NULL, &gHSTimes_rect[i]);
+		}
 		//draw back button
 		tempbox.w = 10;
 		tempbox.h = 10;
@@ -610,6 +760,58 @@ void drawShell(SDL_Renderer *r)
 	}
 }
 
+void checkIfNewHighScore(int levelAchieved, unsigned long int time)
+{
+	int i;
+	int scoreSlot = -1;
+	char buffer[10];
+
+	if (levelAchieved < 1) //didn't finish a level don't do anything
+	{
+		gMenuOptions = STARTGAME;
+		gCurrentMenu = MAIN_MENU;
+	}
+	else //finished a level, now check if any of the scores are beaten 
+	{
+		for (i = 0; i < 10; i++)
+		{
+			if (levelAchieved > gHighScores[i].level) //slot the score in here
+			{
+				scoreSlot = i;
+				break;
+			}
+			else if (levelAchieved == gHighScores[i].level) //same level check to see if the time is lower as a tie breaker
+			{
+				if (time <= gHighScores[i].time)
+				{
+					scoreSlot = i;
+					break;
+				}
+			}
+		} //end find the score slot
+
+		if (scoreSlot > -1) //if a new high score move the high scores and slot in the new one
+		{
+			for (i = 9; i > scoreSlot; i--)
+			{
+				gHighScores[i].level = gHighScores[i - 1].level;
+				gHighScores[i].time = gHighScores[i - 1].time;
+				strcpy(gHighScores[i].Name, gHighScores[i - 1].Name);
+			}
+
+			gHighScores[scoreSlot].level = levelAchieved;
+			gHighScores[scoreSlot].time = time;
+			sprintf_s(buffer, sizeof(buffer), "Player%d",scoreSlot);
+			strcpy(gHighScores[scoreSlot].Name, buffer);
+		}
+		//move these when adding name imput
+		gMenuOptions = STARTGAME;
+		gCurrentMenu = MAIN_MENU;
+		writeGameDataFile();
+		//end move for name input
+	}
+}
+
 void updateVolumes(void)
 {
 	int musicvol, soundvol; 
@@ -646,35 +848,69 @@ void moveShellAIBox(struct AIBox *ai)
 
 void openSaveData(void)
 {
+	int i;
 	FILE *datafile;
 	int master, music, sound;
+	char name[MAX_NAME+1], buffer[25];
+	int level, namelen;
+	unsigned long int time;
+	bool success = true;
 
 	datafile = fopen(SAVE_DATA,"r");
 
 	if (datafile == NULL)
 	{
-#ifdef _DEBUG_BUILD_
+
 		printf("Save data file: %s not found. Creating new file.\n",SAVE_DATA);
-#endif
+
 		writeGameDataFile();
 	}
 	else
 	{
-#ifdef _DEBUG_BUILD_
+
 		printf("Save data loaded.\n");
-#endif
-		fscanf(datafile, "%d, %d, %d\n", &master, &music, &sound);
+
+		master = -1; music = -1; sound = -1;
+		fscanf(datafile, "%d, %d, %d", &master, &music, &sound);
+		fgets(buffer, 25, datafile); //grab the newline char to clean up 
 		printf("Found: %d, %d, %d\n", master, music, sound);
 		if (master > MAX_VOLUME || master < 0 ||
 			music > MAX_VOLUME || music < 0 ||
 			sound > MAX_VOLUME || sound < 0)
 		{
-#ifdef _DEBUG_BUILD_
+
 			printf("Save data corrupt. Making new file.\n");
-#endif
+
 			writeGameDataFile();
+			success = false;
 		}
-		else
+
+		if (success)
+		{
+			for (i = 0; i < 10; i++)
+			{
+				level = -1; time = 0;
+				fgets(name, MAX_NAME+1, datafile);
+				namelen = strlen(name);
+				name[namelen-1] = 0; //remove the newline 
+				fscanf(datafile, "%d, %d", &level, &time); //grab the \n char 
+				fgets(buffer, 20, datafile);
+				if (level < 0)
+				{
+					printf("Save data corrupt. Making new file.\n");
+					resetHighScores();
+					writeGameDataFile();
+					success = false;
+					break;
+				}
+				printf("%d: Name: %s, Level: %d, Time: %d\n", i + 1, name, level, time);
+				strcpy(gHighScores[i].Name, name);
+				gHighScores[i].level = level;
+				gHighScores[i].time = time;
+			}
+		}
+
+		if (success)
 		{
 			gMasterVolume = master;
 			gMusicVolume = music;
@@ -688,6 +924,7 @@ void openSaveData(void)
 
 void writeGameDataFile(void)
 {
+	int i;
 	FILE *datafile;
 
 	datafile = fopen(SAVE_DATA, "w");
@@ -696,9 +933,27 @@ void writeGameDataFile(void)
 	else
 	{
 		fprintf(datafile, "%d, %d, %d\n", gMasterVolume, gMusicVolume, gSoundVolume);
+
+		for (i = 0; i < 10; i++)
+		{
+			fprintf(datafile, "%s\n", gHighScores[i].Name);
+			fprintf(datafile, "%d, %d\n", gHighScores[i].level, gHighScores[i].time);
+		}
 	}
 
 	if (datafile != NULL)
 		fclose(datafile);
+}
+
+void resetHighScores(void)
+{
+	int i;
+
+	for (i = 0; i < 10; i++)
+	{
+		strcpy(gHighScores[i].Name,"");
+		gHighScores[i].level = 0;
+		gHighScores[i].time = 0;
+	}
 }
 

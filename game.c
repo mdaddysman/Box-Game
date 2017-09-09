@@ -499,7 +499,7 @@ void checkEndGame(void)
 	if (gGameState == GAMEOVER)
 	{
 		gPlayerBox.invernable = false;
-		MoveToShell();
+		MoveToShell(gLevel-1,gPreviousLevelTime);
 	}
 
 }

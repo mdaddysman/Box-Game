@@ -20,9 +20,10 @@ void MoveToGame(SDL_Renderer *r)
 	gProgramState = GAME;
 }
 
-void MoveToShell(void)
+void MoveToShell(int levelAchieved, unsigned long int time)
 {
 	gProgramState = SHELL;
+	checkIfNewHighScore(levelAchieved, time);
 }
 
 int main(int argc, char* args[])

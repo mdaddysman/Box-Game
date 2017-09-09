@@ -18,10 +18,12 @@
 
 //game build settings
 #define _DEBUG_BUILD_ //should debug text be shown 
+#define BUILD_NUMBER 200
 
 //constants 
 static const int SCREEN_WIDTH = 800;
 static const int SCREEN_HEIGHT = 600;
+static const char *GAME_NAME = "KAESTCHENSPIEL";
 static const unsigned int STALE_RANDOM = 50000;
 
 static const int SCOREBAR_HEIGHT = 30;
@@ -32,11 +34,14 @@ static const int PLAYERBOX_HEIGHT = 10;
 static const int MAX_BUFFER_SEARCH = 1000; //max number of loops to find a buffer away from box 
 
 static const char *GAME_MUSIC = "Music/Game1.mp3";
+static const char *MENU_MUSIC = "Music/Menu.mp3";
 static const char *WALL_SOUND = "Sounds/fail.wav";
 static const char *DEATH_SOUND = "Sounds/explosion.wav";
 static const char *WIN_SOUND = "Sounds/success.wav";
 static const char *COUNTDOWN_SOUND = "Sounds/countdown.wav";
-static const char *FONT_FILE = "Fonts/RipeApricots.ttf";
+static const char *CLICK_SOUND = "Sounds/menuclick.wav";
+static const char *GAME_FONT_FILE = "Fonts/RipeApricots.ttf";
+static const char *MENU_FONT_FILE = "Fonts/EBGaramond.ttf";
 
 static const float MAX_BOOST = 100;
 static const float BOOST_DOWN_START = 1.5;
@@ -54,14 +59,17 @@ static const SDL_Color TEXT_COLOR = { 255, 255, 255 };
 static const SDL_Color BG_COLOR = { 0, 0, 0 };
 
 #define MAX_AI_BOXES 50
+#define NUM_MENU_BOXES 50
 
 //custom data types 
 enum ProgrameState {SHELL = 0, GAME};
 enum GameState { GAMEPLAY = 0, GAMEOVER, VICTORY, COUNTDOWN, NOGAME };
-enum BoxColors { BLACK = 0, WHITE, RED, BLUE, ORANGE, GREEN, YELLOW };
+enum BoxColors { BLACK = 0, WHITE, RED, BLUE, ORANGE, GREEN, YELLOW, TRANSPARENT_BLACK };
 enum TextType { SOLID = 0, SHADED, BLENDED };
 enum MoveDirection { NORTH = 0, SOUTH, EAST, WEST, NORTHEAST, NORTHWEST, SOUTHEAST, SOUTHWEST, numMoveDirection };
 enum AIType {RANDOM = 0, SEEK, NONE};
+enum MenuOptions {STARTGAME = 0, HOWTOPLAY, HIGHSCORES, OPTIONS, EXIT, numMenuOptions};
+enum CurrentMenu {MAIN_MENU = 0, HOWTOPLAY_MENU, HIGHSCORES_MENU, OPTIONS_MENU};
 
 struct AIBox {
 	int x;
@@ -102,8 +110,21 @@ void drawPlayArea(SDL_Renderer *r);
 void moveAIBox(struct AIBox *ai);
 void changeAIBoxCoordinates(struct AIBox *ai);
 int checkAIBoxDirection(struct AIBox *ai);
+bool pauseGame(SDL_Keycode keycode);
+void checkEndGame(void);
+
+
+//found in shell.c
+void loadShellResources(SDL_Renderer *r);
+void freeShellResources(void);
+bool shellKeyboard(SDL_Event *e, SDL_Renderer *r);
+void shellLogic(void);
+void drawShell(SDL_Renderer *r);
+void moveShellAIBox(struct AIBox *ai);
 
 //found in main.c
+void MoveToGame(SDL_Renderer *r);
+void MoveToShell(void);
 void DrawBox(SDL_Renderer *r, SDL_Rect *box, enum BoxColors color);
 SDL_Texture* makeTextTexture(SDL_Renderer *r, TTF_Font *font, const char *text, SDL_Color fg, SDL_Color bg, enum TextType tt);
 SDL_Rect* copyToSDLRect(struct AIBox *ai, SDL_Rect *sdl);

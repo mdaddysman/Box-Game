@@ -28,13 +28,18 @@ short int gnumUpgrades;
 struct Player gPlayerBox;
 struct AIBox gGoalBox, gEnemyBox[MAX_AI_BOXES];
 enum GameState gGameState;
+bool gPaused; 
+SDL_Texture *gtResume, *gtQuit, *gtResumeSel, *gtQuitSel;
+SDL_Rect gResume_rect, gQuit_rect; 
+int gPausedOption;
 
 //extern fonts
-extern TTF_Font *gSmallFont, *gLargeFont;
+extern TTF_Font *gSmallFont, *gLargeFont, *gMenuFont;
 
 void loadGameResources(SDL_Renderer *r)
 {
 	int i, w, h;
+	SDL_Color Select_Color = { 0, 255, 255 };
 	//initalize global variables 
 	gMusic = NULL;
 	gCountdownSound = NULL;
@@ -57,7 +62,10 @@ void loadGameResources(SDL_Renderer *r)
 	gtvictory = NULL;
 	gtcontinue = NULL;
 
-	
+	gtResume = NULL;
+	gtResumeSel = NULL;
+	gtQuit = NULL;
+	gtQuitSel = NULL;	
 
 	gPlayerBox.x = 200;
 	gPlayerBox.y = 200;
@@ -179,6 +187,22 @@ void loadGameResources(SDL_Renderer *r)
 		gcountdownRects[i].y = gPlayarea.y + gPlayarea.h / 2 - h / 2;
 	}
 
+	//textures for pause menu
+	gtResume = makeTextTexture(r, gMenuFont, "Continue", TEXT_COLOR, BG_COLOR, BLENDED);
+	gtResumeSel = makeTextTexture(r, gMenuFont, "Continue", Select_Color, BG_COLOR, BLENDED);
+	SDL_QueryTexture(gtResume, NULL, NULL, &w, &h);
+	gResume_rect.w = w;
+	gResume_rect.h = h;
+	gResume_rect.x = SCREEN_WIDTH / 2 - w / 2;
+	gResume_rect.y = SCREEN_HEIGHT / 2 - h - 1; 
+	gtQuit = makeTextTexture(r, gMenuFont, "Quit", TEXT_COLOR, BG_COLOR, BLENDED);
+	gtQuitSel = makeTextTexture(r, gMenuFont, "Quit", Select_Color, BG_COLOR, BLENDED);
+	SDL_QueryTexture(gtQuit, NULL, NULL, &w, &h);
+	gQuit_rect.w = w;
+	gQuit_rect.h = h;
+	gQuit_rect.x = SCREEN_WIDTH / 2 - w / 2;
+	gQuit_rect.y = SCREEN_HEIGHT / 2 + 1;
+	gPausedOption = 0;
 }
 
 void freeGameResources(void)
@@ -239,6 +263,18 @@ void freeGameResources(void)
 	if (gtcontinue != NULL)
 		SDL_DestroyTexture(gtcontinue);
 
+	if (gtResume != NULL)
+		SDL_DestroyTexture(gtResume);
+
+	if (gtResumeSel != NULL)
+		SDL_DestroyTexture(gtResumeSel);
+
+	if (gtQuit != NULL)
+		SDL_DestroyTexture(gtQuit);
+
+	if (gtQuitSel != NULL)
+		SDL_DestroyTexture(gtQuitSel);
+
 	for (i = 0; i < 3; i++)
 	{
 		if (gcountdownTextures[i] != NULL)
@@ -258,6 +294,7 @@ void resetGame(void)
 	gGoalBox.rand_direction = 1;
 	gCurrentLevelTime = 0;
 	gPreviousLevelTime = 0;
+	gPaused = false;
 }
 
 void newGame(SDL_Renderer *r)
@@ -376,6 +413,9 @@ bool gameKeyboard(SDL_Renderer *r)
 	int movespeed = 2; //pixels moved per frame 
 	bool isedgehit = false;
 
+	if (gPaused)
+		return(isedgehit); //if paused just skip it
+
 	const Uint8 *currentKeyStates = SDL_GetKeyboardState(NULL);
 
 	switch (gGameState)
@@ -430,15 +470,16 @@ bool gameKeyboard(SDL_Renderer *r)
 			isedgehit = true;
 		}
 		break;
-	case GAMEOVER:
-		if (currentKeyStates[SDL_SCANCODE_RETURN])
-		{
-			gPlayerBox.invernable = false;
-			isedgehit = false;
-			resetGame(); //game is over so reset back to starting values
-			newGame(r); //then start a new game 
-		}
-		break;
+	//case GAMEOVER:  //moved to new function 
+	//	if (currentKeyStates[SDL_SCANCODE_RETURN])
+	//	{
+	//		gPlayerBox.invernable = false;
+	//		isedgehit = false;
+	//		//resetGame(); //game is over so reset back to starting values
+	//		//newGame(r); //then start a new game 
+	//		MoveToShell();
+	//	}
+	//	break;
 	case VICTORY:
 		if (currentKeyStates[SDL_SCANCODE_RETURN])
 		{
@@ -454,6 +495,55 @@ bool gameKeyboard(SDL_Renderer *r)
 	return(isedgehit);
 }
 
+void checkEndGame(void)
+{
+	if (gGameState == GAMEOVER)
+	{
+		gPlayerBox.invernable = false;
+		MoveToShell();
+	}
+
+}
+
+bool pauseGame(SDL_Keycode keycode)
+{
+	bool forceEdgeHit = false;
+
+	switch (keycode)
+	{
+	case SDLK_ESCAPE:
+		if (gGameState == GAMEPLAY)
+		{
+			gPaused = !gPaused;
+			gPausedOption = 0;
+		}
+		break;
+	case SDLK_UP:
+		if (gPaused && gPausedOption > 0)
+			gPausedOption--;
+		break;
+	case SDLK_DOWN:
+		if (gPaused && gPausedOption < 1)
+			gPausedOption++;
+		break;
+	case SDLK_RETURN:
+		if (gPaused && gPausedOption == 0)
+			gPaused = false;
+		else if (gPaused && gPausedOption == 1)
+		{
+			gHitPoints = 0; //kill the player
+			forceEdgeHit = true;
+			gPaused = false;
+			gPausedOption = 0;
+		}
+		break;
+	default:
+		break;
+	}
+
+	return(forceEdgeHit);
+}
+
 void gameLogic(SDL_Renderer *r, bool isedgehit)
 {
 	int i, w, h;
@@ -465,6 +555,9 @@ void gameLogic(SDL_Renderer *r, bool isedgehit)
 		gPlayerBox.w,
 		gPlayerBox.h
 	};
+
+	if (gPaused)
+		return; //if it is paused just skip it 
 
 	//process game movement and win / lose conditions 
 	//check for collision 
@@ -697,6 +790,22 @@ void drawPlayArea(SDL_Renderer *r)
 	default:
 		break;
 	}
+
+	if (gPaused)
+	{
+		DrawBox(r, NULL, TRANSPARENT_BLACK); //gray out the screen
+		if (gPausedOption == 0) //draw the options on the screen
+		{
+			SDL_RenderCopy(r, gtResumeSel, NULL, &gResume_rect);
+			SDL_RenderCopy(r, gtQuit, NULL, &gQuit_rect);
+		}
+		else
+		{
+			SDL_RenderCopy(r, gtResume, NULL, &gResume_rect);
+			SDL_RenderCopy(r, gtQuitSel, NULL, &gQuit_rect);
+		}
+	}
+
 }
 
 void updateGameTimer(SDL_Renderer *r)
@@ -705,7 +814,7 @@ void updateGameTimer(SDL_Renderer *r)
 	unsigned long int m1, s1, m2, s2, combine_t;
 	int w, h; 
 
-	if (gGameState == GAMEPLAY)
+	if (gGameState == GAMEPLAY && !gPaused)
 	{
 		gCurrentLevelTime++;
 		m1 = gCurrentLevelTime / 60;

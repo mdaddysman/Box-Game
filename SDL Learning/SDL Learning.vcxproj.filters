@@ -24,6 +24,9 @@
     <ClCompile Include="..\game.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\shell.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\main.h">

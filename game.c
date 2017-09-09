@@ -33,8 +33,7 @@ SDL_Texture *gtResume, *gtQuit, *gtResumeSel, *gtQuitSel;
 SDL_Rect gResume_rect, gQuit_rect; 
 int gPausedOption;
 
-//extern fonts
-extern TTF_Font *gSmallFont, *gLargeFont, *gMenuFont;
+extern TTF_Font *gSmallFont, *gLargeFont, *gMenuFont; //extern fonts
 
 void loadGameResources(SDL_Renderer *r)
 {

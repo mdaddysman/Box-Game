@@ -10,24 +10,30 @@
 
 enum MenuOptions gMenuOptions; 
 enum CurrentMenu gCurrentMenu;
+enum OptionsMenuOptions gOptionsMenuOptions; 
 SDL_Texture *gtTitle, *gtMenuOptions[numMenuOptions], *gtMenuOptionsSel[numMenuOptions], *gtVersionText[2];
 SDL_Rect gTitle_rect, gMenuOptions_rect[numMenuOptions], gVersion_rect[2];
 SDL_Texture *gtBack, *gtBackSel, *gtHowToPlay, *gtHighScores, *gtOptions;
 SDL_Rect gBack_rect, gHowToPlay_rect, gHighScores_rect, gOptions_rect;
 Mix_Music *gMenuMusic;
 Mix_Chunk *gClickSound; 
+SDL_Texture *gtMasterVolume, *gtMusicVolume, *gtSoundVolume, *gtFPSOnOff;
+SDL_Rect gMasterVolume_rect, gMusicVolume_rect, gSoundVolume_rect, gFPSOnOff_rect;
+int gMasterVolume, gMusicVolume, gSoundVolume; //volume levels 
 
 struct AIBox gMenuBoxes[NUM_MENU_BOXES];
 static const int MENU_BOX_SIZE = 10;
 
-//extern fonts
-extern TTF_Font *gSmallFont, *gLargeFont, *gMenuFont, *gMenuFontSmall;
+extern TTF_Font *gSmallFont, *gLargeFont, *gMenuFont, *gMenuFontSmall; //extern fonts
+extern bool gDrawFPS; 
+
 
 void loadShellResources(SDL_Renderer *r)
 {
 	int i, w, h; 
 	char buffer[100];
 	SDL_Color Select_Color = { 0, 255, 255 };
+	int optionsLeftOffset = 0;
 
 	gMenuMusic = NULL;
 	gClickSound = NULL;
@@ -45,6 +51,15 @@ void loadShellResources(SDL_Renderer *r)
 	gtHowToPlay = NULL;
 	gtHighScores = NULL;
 	gtOptions = NULL;
+
+	gtMasterVolume = NULL;
+	gtMusicVolume = NULL; 
+	gtSoundVolume = NULL; 
+	gtFPSOnOff = NULL;
+
+	gMasterVolume = MAX_VOLUME;
+	gSoundVolume = MAX_VOLUME;
+	gMusicVolume = MAX_VOLUME;
 
 	gtTitle = makeTextTexture(r, gLargeFont, GAME_NAME, TEXT_COLOR, BG_COLOR, BLENDED);
 	SDL_QueryTexture(gtTitle, NULL, NULL, &w, &h);
@@ -77,7 +92,7 @@ void loadShellResources(SDL_Renderer *r)
 			gMenuOptions_rect[i].y = gMenuOptions_rect[i - 1].y + gMenuOptions_rect[i - 1].h + 4;
 	}
 
-	sprintf_s(buffer, sizeof(buffer), "v %d.%03d", BUILD_NUMBER / 1000 ,BUILD_NUMBER % 1000);	
+	sprintf_s(buffer, sizeof(buffer), "Version %d.%03d", BUILD_NUMBER / 1000 ,BUILD_NUMBER % 1000);	
 	gtVersionText[0] = makeTextTexture(r, gMenuFontSmall, buffer, TEXT_COLOR, BG_COLOR, BLENDED);	
 	gtVersionText[1] = makeTextTexture(r, gMenuFontSmall, 
 		"Copyright 2017 under GNU GPLv3 by Matthew K. Daddysman", TEXT_COLOR, BG_COLOR, BLENDED);
@@ -90,25 +105,6 @@ void loadShellResources(SDL_Renderer *r)
 	}
 	gVersion_rect[1].y = SCREEN_HEIGHT - gVersion_rect[1].h - 4;
 	gVersion_rect[0].y = gVersion_rect[1].y - gVersion_rect[0].h;
-
-	gtHowToPlay = makeTextTexture(r, gLargeFont, "How to Play", TEXT_COLOR, BG_COLOR, BLENDED);
-	SDL_QueryTexture(gtHowToPlay, NULL, NULL, &w, &h);
-	gHowToPlay_rect.x = SCREEN_WIDTH / 2 - w / 2;
-	gHowToPlay_rect.y = 10;
-	gHowToPlay_rect.w = w;
-	gHowToPlay_rect.h = h;
-	gtHighScores = makeTextTexture(r, gLargeFont, "High Scores", TEXT_COLOR, BG_COLOR, BLENDED);
-	SDL_QueryTexture(gtHighScores, NULL, NULL, &w, &h);
-	gHighScores_rect.x = SCREEN_WIDTH / 2 - w / 2;
-	gHighScores_rect.y = 10;
-	gHighScores_rect.w = w;
-	gHighScores_rect.h = h;
-	gtOptions = makeTextTexture(r, gLargeFont, "Options", TEXT_COLOR, BG_COLOR, BLENDED);
-	SDL_QueryTexture(gtOptions, NULL, NULL, &w, &h);
-	gOptions_rect.x = SCREEN_WIDTH / 2 - w / 2;
-	gOptions_rect.y = 10;
-	gOptions_rect.w = w;
-	gOptions_rect.h = h;
 	
 	gtBack = makeTextTexture(r, gMenuFont, "BACK", TEXT_COLOR, BG_COLOR, BLENDED);
 	gtBackSel = makeTextTexture(r, gMenuFont, "BACK", Select_Color, BG_COLOR, BLENDED);
@@ -117,8 +113,6 @@ void loadShellResources(SDL_Renderer *r)
 	gBack_rect.h = h;
 	gBack_rect.y = SCREEN_HEIGHT - gBack_rect.h - 10;
 	gBack_rect.x = SCREEN_WIDTH / 2 - gBack_rect.w / 2; 
-
-
 
 	gMenuMusic = Mix_LoadMUS(MENU_MUSIC);
 
@@ -140,6 +134,78 @@ void loadShellResources(SDL_Renderer *r)
 			gMenuBoxes[i].color = ORANGE;
 	}
 	gClickSound = Mix_LoadWAV(CLICK_SOUND);
+	//end main and general menu resources
+
+	//load the save values and set
+	openSaveData();
+	updateVolumes();
+	//end load save values
+
+	//load option menu resources
+	gtOptions = makeTextTexture(r, gLargeFont, "Options", TEXT_COLOR, BG_COLOR, BLENDED);
+	SDL_QueryTexture(gtOptions, NULL, NULL, &w, &h);
+	gOptions_rect.x = SCREEN_WIDTH / 2 - w / 2;
+	gOptions_rect.y = 10;
+	gOptions_rect.w = w;
+	gOptions_rect.h = h;
+
+	optionsLeftOffset = 25;
+	sprintf_s(buffer, sizeof(buffer), "Master Volume: %d", gMasterVolume);
+	gtMasterVolume = makeTextTexture(r, gMenuFont, buffer, TEXT_COLOR, BG_COLOR, BLENDED);
+	SDL_QueryTexture(gtMasterVolume, NULL, NULL, &w, &h);
+	gMasterVolume_rect.x = optionsLeftOffset;
+	gMasterVolume_rect.y = gOptions_rect.y + gOptions_rect.h + 50;
+	gMasterVolume_rect.w = w;
+	gMasterVolume_rect.h = h;
+
+	sprintf_s(buffer, sizeof(buffer), "Music Volume: %d", gMusicVolume);
+	gtMusicVolume = makeTextTexture(r, gMenuFont, buffer, TEXT_COLOR, BG_COLOR, BLENDED);
+	SDL_QueryTexture(gtMusicVolume, NULL, NULL, &w, &h);
+	gMusicVolume_rect.x = optionsLeftOffset + 25;
+	gMusicVolume_rect.y = gMasterVolume_rect.y + gMasterVolume_rect.h + 2;
+	gMusicVolume_rect.w = w;
+	gMusicVolume_rect.h = h;
+
+	sprintf_s(buffer, sizeof(buffer), "Sound Volume: %d", gSoundVolume);
+	gtSoundVolume = makeTextTexture(r, gMenuFont, buffer, TEXT_COLOR, BG_COLOR, BLENDED);
+	SDL_QueryTexture(gtSoundVolume, NULL, NULL, &w, &h);
+	gSoundVolume_rect.x = optionsLeftOffset + 25;
+	gSoundVolume_rect.y = gMusicVolume_rect.y + gMusicVolume_rect.h + 2;
+	gSoundVolume_rect.w = w;
+	gSoundVolume_rect.h = h;
+
+	if (gDrawFPS)
+		sprintf_s(buffer, sizeof(buffer), "Display Frames per Second (FPS): On");
+	else
+		sprintf_s(buffer, sizeof(buffer), "Display Frames per Second (FPS): Off");
+	gtFPSOnOff = makeTextTexture(r, gMenuFont, buffer, TEXT_COLOR, BG_COLOR, BLENDED);
+	SDL_QueryTexture(gtFPSOnOff, NULL, NULL, &w, &h);
+	gFPSOnOff_rect.x = optionsLeftOffset;
+	gFPSOnOff_rect.y = gSoundVolume_rect.y + gSoundVolume_rect.h + 25;
+	gFPSOnOff_rect.w = w;
+	gFPSOnOff_rect.h = h;
+	//end option menu
+
+	//load how to play menu resources
+	gtHowToPlay = makeTextTexture(r, gLargeFont, "How to Play", TEXT_COLOR, BG_COLOR, BLENDED);
+	SDL_QueryTexture(gtHowToPlay, NULL, NULL, &w, &h);
+	gHowToPlay_rect.x = SCREEN_WIDTH / 2 - w / 2;
+	gHowToPlay_rect.y = 10;
+	gHowToPlay_rect.w = w;
+	gHowToPlay_rect.h = h;
+	//end how to play menu
+
+	//load high scores menu resources
+	gtHighScores = makeTextTexture(r, gLargeFont, "High Scores", TEXT_COLOR, BG_COLOR, BLENDED);
+	SDL_QueryTexture(gtHighScores, NULL, NULL, &w, &h);
+	gHighScores_rect.x = SCREEN_WIDTH / 2 - w / 2;
+	gHighScores_rect.y = 10;
+	gHighScores_rect.w = w;
+	gHighScores_rect.h = h;
+	//end high scores menu
+
+
+	//set default menu options
 	gMenuOptions = STARTGAME;
 	gCurrentMenu = MAIN_MENU;
 }
@@ -179,6 +245,18 @@ void freeShellResources(void)
 
 	if (gtOptions != NULL)
 		SDL_DestroyTexture(gtOptions);
+
+	if (gtMasterVolume != NULL)
+		SDL_DestroyTexture(gtMasterVolume);
+
+	if (gtMusicVolume != NULL)
+		SDL_DestroyTexture(gtMusicVolume);
+
+	if (gtSoundVolume != NULL)
+		SDL_DestroyTexture(gtSoundVolume);
+
+	if (gtFPSOnOff != NULL)
+		SDL_DestroyTexture(gtFPSOnOff);
 
 	if (gMenuMusic != NULL)
 		Mix_FreeMusic(gMenuMusic);
@@ -224,6 +302,7 @@ bool shellKeyboard(SDL_Event *e, SDL_Renderer *r)
 				break;
 			case OPTIONS:
 				Mix_PlayChannel(-1, gClickSound, 0);
+				gOptionsMenuOptions = BACK_OPTIONS;
 				gCurrentMenu = OPTIONS_MENU;
 				break;
 			case EXIT:
@@ -248,9 +327,92 @@ bool shellKeyboard(SDL_Event *e, SDL_Renderer *r)
 	case OPTIONS_MENU:
 		switch (e->key.keysym.sym)
 		{
-		case SDLK_RETURN:
+		case SDLK_UP:
 			Mix_PlayChannel(-1, gClickSound, 0);
-			gCurrentMenu = MAIN_MENU;
+			if (gOptionsMenuOptions > 0)
+				gOptionsMenuOptions--;
+			break;
+		case SDLK_DOWN:
+			Mix_PlayChannel(-1, gClickSound, 0);
+			if (gOptionsMenuOptions < BACK_OPTIONS)
+				gOptionsMenuOptions++;
+			break;
+		case SDLK_RETURN:
+			if (gOptionsMenuOptions == BACK_OPTIONS)
+			{
+				Mix_PlayChannel(-1, gClickSound, 0);
+				writeGameDataFile();
+				gCurrentMenu = MAIN_MENU;
+			}
+			else if (gOptionsMenuOptions == FPSONOFF)
+			{
+				Mix_PlayChannel(-1, gClickSound, 0);
+				gDrawFPS = !gDrawFPS;
+			}
+		case SDLK_LEFT:
+			switch (gOptionsMenuOptions)
+			{
+			case MASTERVOLUME:
+				if (gMasterVolume > 0)
+				{
+					gMasterVolume--;
+					updateVolumes();
+					Mix_PlayChannel(-1, gClickSound, 0);
+				}
+				break;
+			case MUSICVOLUME:
+				if (gMusicVolume > 0)
+				{
+					gMusicVolume--;
+					updateVolumes();
+				}
+				break;
+			case SOUNDVOLUME:
+				if (gSoundVolume > 0)
+				{
+					gSoundVolume--;
+					updateVolumes();
+					Mix_PlayChannel(-1, gClickSound, 0);
+				}
+				break;
+			case FPSONOFF:
+				Mix_PlayChannel(-1, gClickSound, 0);
+				gDrawFPS = !gDrawFPS;
+				break;
+			}
+			break;
+		case SDLK_RIGHT:
+			switch (gOptionsMenuOptions)
+			{
+			case MASTERVOLUME:
+				if (gMasterVolume < MAX_VOLUME)
+				{
+					gMasterVolume++;
+					updateVolumes();
+					Mix_PlayChannel(-1, gClickSound, 0);
+				}
+				break;
+			case MUSICVOLUME:
+				if (gMusicVolume < MAX_VOLUME)
+				{
+					gMusicVolume++;
+					updateVolumes();
+				}
+				break;
+			case SOUNDVOLUME:
+				if (gSoundVolume < MAX_VOLUME)
+				{
+					gSoundVolume++;
+					updateVolumes();
+					Mix_PlayChannel(-1, gClickSound, 0);
+				}
+				break;
+			case FPSONOFF:
+				Mix_PlayChannel(-1, gClickSound, 0);
+				gDrawFPS = !gDrawFPS;
+				break;
+			}
+			break;
 		default:
 			break;
 		}
@@ -262,13 +424,66 @@ bool shellKeyboard(SDL_Event *e, SDL_Renderer *r)
 	return(quit);
 }
 
-void shellLogic(void)
+void shellLogic(SDL_Renderer *r)
 {
-	int i;
+	int i, w, h;
+	char buffer[100];
+	SDL_Color Select_Color = { 0, 255, 255 };
 
 	if (gCurrentMenu != HOWTOPLAY_MENU)
 		for (i = 0; i < NUM_MENU_BOXES; i++)
 			moveShellAIBox(&gMenuBoxes[i]);
+
+	if (gCurrentMenu == OPTIONS_MENU)
+	{
+		if (gtMasterVolume != NULL)
+			SDL_DestroyTexture(gtMasterVolume);
+		sprintf_s(buffer, sizeof(buffer), "Master Volume: %d", gMasterVolume);
+		if (gOptionsMenuOptions == MASTERVOLUME)
+			gtMasterVolume = makeTextTexture(r, gMenuFont, buffer, Select_Color, BG_COLOR, BLENDED);
+		else
+			gtMasterVolume = makeTextTexture(r, gMenuFont, buffer, TEXT_COLOR, BG_COLOR, BLENDED);
+		SDL_QueryTexture(gtMasterVolume, NULL, NULL, &w, &h);
+		gMasterVolume_rect.w = w;
+		gMasterVolume_rect.h = h;
+
+		if (gtMusicVolume != NULL)
+			SDL_DestroyTexture(gtMusicVolume);
+		sprintf_s(buffer, sizeof(buffer), "Music Volume: %d", gMusicVolume);
+		if (gOptionsMenuOptions == MUSICVOLUME)
+			gtMusicVolume = makeTextTexture(r, gMenuFont, buffer, Select_Color, BG_COLOR, BLENDED);
+		else
+			gtMusicVolume = makeTextTexture(r, gMenuFont, buffer, TEXT_COLOR, BG_COLOR, BLENDED);
+		SDL_QueryTexture(gtMusicVolume, NULL, NULL, &w, &h);
+		gMusicVolume_rect.w = w;
+		gMusicVolume_rect.h = h;
+
+		if (gtSoundVolume != NULL)
+			SDL_DestroyTexture(gtSoundVolume);
+		sprintf_s(buffer, sizeof(buffer), "Sound Volume: %d", gSoundVolume);
+		if (gOptionsMenuOptions == SOUNDVOLUME)
+			gtSoundVolume = makeTextTexture(r, gMenuFont, buffer, Select_Color, BG_COLOR, BLENDED);
+		else
+			gtSoundVolume = makeTextTexture(r, gMenuFont, buffer, TEXT_COLOR, BG_COLOR, BLENDED);
+		SDL_QueryTexture(gtSoundVolume, NULL, NULL, &w, &h);
+		gSoundVolume_rect.w = w;
+		gSoundVolume_rect.h = h;
+
+		if (gDrawFPS)
+			sprintf_s(buffer, sizeof(buffer), "Display Frames per Second (FPS): On");
+		else
+			sprintf_s(buffer, sizeof(buffer), "Display Frames per Second (FPS): Off");
+
+		if (gtFPSOnOff != NULL)
+			SDL_DestroyTexture(gtFPSOnOff);
+		if (gOptionsMenuOptions == FPSONOFF)
+			gtFPSOnOff = makeTextTexture(r, gMenuFont, buffer, Select_Color, BG_COLOR, BLENDED);
+		else
+			gtFPSOnOff = makeTextTexture(r, gMenuFont, buffer, TEXT_COLOR, BG_COLOR, BLENDED);
+		SDL_QueryTexture(gtFPSOnOff, NULL, NULL, &w, &h);
+		gFPSOnOff_rect.w = w;
+		gFPSOnOff_rect.h = h;
+	}
 	
 }
 
@@ -334,19 +549,76 @@ void drawShell(SDL_Renderer *r)
 		break;
 	case OPTIONS_MENU:
 		SDL_RenderCopy(r, gtOptions, NULL, &gOptions_rect); //draw title
+		SDL_RenderCopy(r, gtMasterVolume, NULL, &gMasterVolume_rect);
+		SDL_RenderCopy(r, gtMusicVolume, NULL, &gMusicVolume_rect);
+		SDL_RenderCopy(r, gtSoundVolume, NULL, &gSoundVolume_rect);
+		SDL_RenderCopy(r, gtFPSOnOff, NULL, &gFPSOnOff_rect);
 		//draw back button
+		if (gOptionsMenuOptions == BACK_OPTIONS)
+			SDL_RenderCopy(r, gtBackSel, NULL, &gBack_rect);
+		else
+			SDL_RenderCopy(r, gtBack, NULL, &gBack_rect);
+		//draw boxes around selected option
 		tempbox.w = 10;
 		tempbox.h = 10;
-		tempbox.y = gBack_rect.y + gBack_rect.h / 2 - tempbox.h / 2 + 1;
-		tempbox.x = gBack_rect.x - tempbox.w - 10;
-		DrawBox(r, &tempbox, WHITE);
-		tempbox.x = gBack_rect.x + gBack_rect.w + 10;
-		DrawBox(r, &tempbox, WHITE);
-		SDL_RenderCopy(r, gtBackSel, NULL, &gBack_rect);
+		switch (gOptionsMenuOptions)
+		{
+		case MASTERVOLUME:
+			tempbox.y = gMasterVolume_rect.y + gMasterVolume_rect.h / 2 - tempbox.h / 2 + 1;
+			tempbox.x = gMasterVolume_rect.x - tempbox.w - 10;
+			DrawBox(r, &tempbox, WHITE);
+			tempbox.x = gMasterVolume_rect.x + gMasterVolume_rect.w + 10;
+			DrawBox(r, &tempbox, WHITE);
+			break;
+		case MUSICVOLUME:
+			tempbox.y = gMusicVolume_rect.y + gMusicVolume_rect.h / 2 - tempbox.h / 2 + 1;
+			tempbox.x = gMusicVolume_rect.x - tempbox.w - 10;
+			DrawBox(r, &tempbox, WHITE);
+			tempbox.x = gMusicVolume_rect.x + gMusicVolume_rect.w + 10;
+			DrawBox(r, &tempbox, WHITE);
+			break;
+		case SOUNDVOLUME:
+			tempbox.y = gSoundVolume_rect.y + gSoundVolume_rect.h / 2 - tempbox.h / 2 + 1;
+			tempbox.x = gSoundVolume_rect.x - tempbox.w - 10;
+			DrawBox(r, &tempbox, WHITE);
+			tempbox.x = gSoundVolume_rect.x + gSoundVolume_rect.w + 10;
+			DrawBox(r, &tempbox, WHITE);
+			break;
+		case FPSONOFF:
+			tempbox.y = gFPSOnOff_rect.y + gFPSOnOff_rect.h / 2 - tempbox.h / 2 + 1;
+			tempbox.x = gFPSOnOff_rect.x - tempbox.w - 10;
+			DrawBox(r, &tempbox, WHITE);
+			tempbox.x = gFPSOnOff_rect.x + gFPSOnOff_rect.w + 10;
+			DrawBox(r, &tempbox, WHITE);
+			break;
+		case BACK_OPTIONS:
+			tempbox.y = gBack_rect.y + gBack_rect.h / 2 - tempbox.h / 2 + 1;
+			tempbox.x = gBack_rect.x - tempbox.w - 10;
+			DrawBox(r, &tempbox, WHITE);
+			tempbox.x = gBack_rect.x + gBack_rect.w + 10;
+			DrawBox(r, &tempbox, WHITE);
+			break;
+		default:
+			break;
+		}		
 		break;
 	default:
 		break;
 	}
+}
+
+void updateVolumes(void)
+{
+	int musicvol, soundvol; 
+
+	musicvol = (int)(gMasterVolume * gMusicVolume * MIX_MAX_VOLUME / 10000);
+	soundvol = (int)(gMasterVolume * gSoundVolume * MIX_MAX_VOLUME / 10000);
+
+#ifdef _DEBUG_BUILD_
+	printf("Volume changed. Music: %d / %d, Sound: %d / %d\n", musicvol, MIX_MAX_VOLUME, soundvol, MIX_MAX_VOLUME);
+#endif
+	Mix_VolumeMusic(musicvol);
+	Mix_Volume(-1, soundvol);
 }
 
 void moveShellAIBox(struct AIBox *ai)
@@ -368,3 +640,62 @@ void moveShellAIBox(struct AIBox *ai)
 		ai->y = 0 - ai->h;
 
 }
+
+void openSaveData(void)
+{
+	FILE *datafile;
+	int master, music, sound;
+
+	datafile = fopen(SAVE_DATA,"r");
+
+	if (datafile == NULL)
+	{
+#ifdef _DEBUG_BUILD_
+		printf("Save data file: %s not found. Creating new file.\n",SAVE_DATA);
+#endif
+		writeGameDataFile();
+	}
+	else
+	{
+#ifdef _DEBUG_BUILD_
+		printf("Save data loaded.\n");
+#endif
+		fscanf(datafile, "%d, %d, %d\n", &master, &music, &sound);
+		printf("Found: %d, %d, %d\n", master, music, sound);
+		if (master > MAX_VOLUME || master < 0 ||
+			music > MAX_VOLUME || music < 0 ||
+			sound > MAX_VOLUME || sound < 0)
+		{
+#ifdef _DEBUG_BUILD_
+			printf("Save data corrupt. Making new file.\n");
+#endif
+			writeGameDataFile();
+		}
+		else
+		{
+			gMasterVolume = master;
+			gMusicVolume = music;
+			gSoundVolume = sound;
+		}
+	}
+
+	if (datafile != NULL)
+		fclose(datafile);
+}
+
+void writeGameDataFile(void)
+{
+	FILE *datafile;
+
+	datafile = fopen(SAVE_DATA, "w");
+	if (datafile == NULL)
+		printf("Cannot write to data file: %s\n", SAVE_DATA);
+	else
+	{
+		fprintf(datafile, "%d, %d, %d\n", gMasterVolume, gMusicVolume, gSoundVolume);
+	}
+
+	if (datafile != NULL)
+		fclose(datafile);
+}
+

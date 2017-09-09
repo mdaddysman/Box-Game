@@ -11,6 +11,7 @@
 unsigned int gRandCount; // number of times the random number generator has been called 
 TTF_Font *gSmallFont, *gLargeFont, *gMenuFont, *gMenuFontSmall;
 enum ProgramState gProgramState;
+bool gDrawFPS;
 
 void MoveToGame(SDL_Renderer *r)
 {
@@ -42,8 +43,8 @@ int main(int argc, char* args[])
 	
 	bool quit = false;	
 	bool isEdgeHit = false;
-
-	bool drawFPS = false;	
+	gDrawFPS = false;
+		
 	int fps = 0; 
 	int framecount = 0; 
 	Uint32 startTick, currentTick; 
@@ -232,9 +233,9 @@ int main(int argc, char* args[])
 						isEdgeHit = pauseGame(e.key.keysym.sym);
 					}
 					break;
-				case SDLK_f:
-					drawFPS = !drawFPS; //draw FPS used on all screens and inputs 
-					break;
+				//case SDLK_f:
+					//drawFPS = !drawFPS; //draw FPS used on all screens and inputs 
+					//break;
 				default:
 					break;
 				}
@@ -254,7 +255,7 @@ int main(int argc, char* args[])
 			gameLogic(renderer, isEdgeHit);
 			break;
 		case SHELL:
-			shellLogic();
+			shellLogic(renderer);
 			break;
 		default:
 			break;
@@ -277,7 +278,7 @@ int main(int argc, char* args[])
 		}
 
 		//draw the FPS text - all game states 
-		if (drawFPS)
+		if (gDrawFPS)
 		{
 			if (tFPS != NULL)
 				SDL_DestroyTexture(tFPS);

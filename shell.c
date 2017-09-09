@@ -11,8 +11,8 @@
 enum MenuOptions gMenuOptions; 
 enum CurrentMenu gCurrentMenu;
 enum OptionsMenuOptions gOptionsMenuOptions; 
-SDL_Texture *gtTitle, *gtMenuOptions[numMenuOptions], *gtMenuOptionsSel[numMenuOptions], *gtVersionText[2];
-SDL_Rect gTitle_rect, gMenuOptions_rect[numMenuOptions], gVersion_rect[2];
+SDL_Texture *gtTitle, *gtMenuOptions[numMenuOptions], *gtMenuOptionsSel[numMenuOptions], *gtVersionText[3];
+SDL_Rect gTitle_rect, gMenuOptions_rect[numMenuOptions], gVersion_rect[3];
 SDL_Texture *gtBack, *gtBackSel, *gtHowToPlay, *gtHighScores, *gtOptions;
 SDL_Rect gBack_rect, gHowToPlay_rect, gHighScores_rect, gOptions_rect;
 Mix_Music *gMenuMusic;
@@ -94,17 +94,20 @@ void loadShellResources(SDL_Renderer *r)
 
 	sprintf_s(buffer, sizeof(buffer), "Version %d.%03d", BUILD_NUMBER / 1000 ,BUILD_NUMBER % 1000);	
 	gtVersionText[0] = makeTextTexture(r, gMenuFontSmall, buffer, TEXT_COLOR, BG_COLOR, BLENDED);	
-	gtVersionText[1] = makeTextTexture(r, gMenuFontSmall, 
-		"Copyright 2017 under GNU GPLv3 by Matthew K. Daddysman", TEXT_COLOR, BG_COLOR, BLENDED);
-	for (i = 0; i < 2; i++)
+	gtVersionText[1] = makeTextTexture(r, gMenuFontSmall,
+		"Game Music Copyright 2017 by Brian Hicks", TEXT_COLOR, BG_COLOR, BLENDED);
+	gtVersionText[2] = makeTextTexture(r, gMenuFontSmall, 
+		"Game Code Copyright 2017 under GNU GPLv3 by Matthew K. Daddysman", TEXT_COLOR, BG_COLOR, BLENDED);
+	for (i = 0; i < 3; i++)
 	{
 		SDL_QueryTexture(gtVersionText[i], NULL, NULL, &w, &h);
 		gVersion_rect[i].w = w;
 		gVersion_rect[i].h = h;
 		gVersion_rect[i].x = (SCREEN_WIDTH - w) / 2;
 	}
-	gVersion_rect[1].y = SCREEN_HEIGHT - gVersion_rect[1].h - 4;
-	gVersion_rect[0].y = gVersion_rect[1].y - gVersion_rect[0].h;
+	gVersion_rect[2].y = SCREEN_HEIGHT - gVersion_rect[2].h - 4;
+	gVersion_rect[1].y = gVersion_rect[2].y - gVersion_rect[1].h + 2;
+	gVersion_rect[0].y = gVersion_rect[1].y - gVersion_rect[0].h + 4;
 	
 	gtBack = makeTextTexture(r, gMenuFont, "BACK", TEXT_COLOR, BG_COLOR, BLENDED);
 	gtBackSel = makeTextTexture(r, gMenuFont, "BACK", Select_Color, BG_COLOR, BLENDED);
@@ -217,7 +220,7 @@ void freeShellResources(void)
 	if (gtTitle != NULL)
 		SDL_DestroyTexture(gtTitle);
 
-	for (i = 0; i < 2; i++)
+	for (i = 0; i < 3; i++)
 	{
 		if (gtVersionText[i] != NULL)
 			SDL_DestroyTexture(gtVersionText[i]);
@@ -503,7 +506,7 @@ void drawShell(SDL_Renderer *r)
 	{
 	case MAIN_MENU:
 		SDL_RenderCopy(r, gtTitle, NULL, &gTitle_rect);
-		for (i = 0; i < 2; i++)
+		for (i = 0; i < 3; i++)
 			SDL_RenderCopy(r, gtVersionText[i], NULL, &gVersion_rect[i]);
 
 		for (i = 0; i < numMenuOptions; i++)

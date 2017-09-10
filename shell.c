@@ -873,19 +873,19 @@ void checkIfNewHighScore(int levelAchieved, unsigned long int time, SDL_Renderer
 			gHighScores[scoreSlot].time = time;
 			//sprintf_s(buffer, sizeof(buffer), "Player%d",scoreSlot);
 			strcpy(gHighScores[scoreSlot].Name, "");
+			gnumNameInput = 0;
+			strcpy(gNameInput, "");
+			gHSRank = scoreSlot;
+			gCurrentMenu = ENTERNAME_MENU;
+			openHighScoresScreen(r);
+			SDL_StartTextInput(); //enable text input
 		}
-		gnumNameInput = 0;
-		strcpy(gNameInput,"");
-		gHSRank = scoreSlot;
-		gCurrentMenu = ENTERNAME_MENU;
-		openHighScoresScreen(r);
-		SDL_StartTextInput(); //enable text input
-
-		//move these when adding name imput
-		//gMenuOptions = STARTGAME;
-		//gCurrentMenu = MAIN_MENU;
-		//writeGameDataFile();
-		//end move for name input
+		else
+		{
+			//just return to main menu
+			gMenuOptions = STARTGAME;
+			gCurrentMenu = MAIN_MENU;
+		}
 	}
 }
 

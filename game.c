@@ -494,12 +494,12 @@ bool gameKeyboard(SDL_Renderer *r)
 	return(isedgehit);
 }
 
-void checkEndGame(void)
+void checkEndGame(SDL_Renderer *r)
 {
 	if (gGameState == GAMEOVER)
 	{
 		gPlayerBox.invernable = false;
-		MoveToShell();
+		MoveToShell(gLevel-1,gPreviousLevelTime,r);
 	}
 
 }

@@ -22,6 +22,8 @@ SDL_Rect gMasterVolume_rect, gMusicVolume_rect, gSoundVolume_rect, gFPSOnOff_rec
 int gMasterVolume, gMusicVolume, gSoundVolume; //volume levels 
 SDL_Texture *gtNameTitle, *gtLevelTitle, *gtTimeTitle, *gtRanking[10], *gtHSPlayerNames[10], *gtHSLevels[10], *gtHSTimes[10];
 SDL_Rect gNameTitle_rect, gLevelTitle_rect, gTimeTitle_rect, gRanking_rect[10], gHSPlayerNames_rect[10], gHSLevels_rect[10], gHSTimes_rect[10];
+int gnumNameInput, gHSRank; 
+char gNameInput[MAX_NAME+20];
 
 struct AIBox gMenuBoxes[NUM_MENU_BOXES];
 static const int MENU_BOX_SIZE = 10;
@@ -75,6 +77,10 @@ void loadShellResources(SDL_Renderer *r)
 	gMasterVolume = MAX_VOLUME;
 	gSoundVolume = MAX_VOLUME;
 	gMusicVolume = MAX_VOLUME;
+
+	gHSRank = 0;
+	gnumNameInput = 0;
+	strcpy(gNameInput, "");
 
 	gtTitle = makeTextTexture(r, gLargeFont, GAME_NAME, TEXT_COLOR, BG_COLOR, BLENDED);
 	SDL_QueryTexture(gtTitle, NULL, NULL, &w, &h);
@@ -372,7 +378,10 @@ void openHighScoresScreen(SDL_Renderer *r)
 			break; //end the loop
 		else
 		{
-			gtHSPlayerNames[i] = makeTextTexture(r, gMenuFont, gHighScores[i].Name, TEXT_COLOR, BG_COLOR, BLENDED);
+			if (gCurrentMenu == ENTERNAME_MENU && i == gHSRank)
+				gtHSPlayerNames[i] = makeTextTexture(r, gMenuFont, "_", TEXT_COLOR, BG_COLOR, BLENDED);
+			else
+				gtHSPlayerNames[i] = makeTextTexture(r, gMenuFont, gHighScores[i].Name, TEXT_COLOR, BG_COLOR, BLENDED);
 			SDL_QueryTexture(gtHSPlayerNames[i], NULL, NULL, &w, &h);
 			gHSPlayerNames_rect[i].x = gNameTitle_rect.x;
 			gHSPlayerNames_rect[i].y = gRanking_rect[i].y;
@@ -403,6 +412,8 @@ void openHighScoresScreen(SDL_Renderer *r)
 
 bool shellKeyboard(SDL_Event *e, SDL_Renderer *r)
 {
+	char nbuffer[MAX_NAME+20];
+	int w, h;
 	bool quit = false;
 	switch (gCurrentMenu)
 	{
@@ -554,11 +565,66 @@ bool shellKeyboard(SDL_Event *e, SDL_Renderer *r)
 			break;
 		}
 		break;
+	case ENTERNAME_MENU:
+		if (e->key.keysym.sym == SDLK_RETURN && gnumNameInput > 0)
+		{
+			strcpy(gHighScores[gHSRank].Name, gNameInput);
+			gCurrentMenu = MAIN_MENU;
+			gMenuOptions = STARTGAME;
+			SDL_StopTextInput();
+			writeGameDataFile();
+		}
+		if (e->key.keysym.sym == SDLK_BACKSPACE && gnumNameInput > 0)
+		{
+			gnumNameInput--;
+			gNameInput[gnumNameInput] = 0; //move back the null pointer to back up the string
+			if (gtHSPlayerNames[gHSRank] != NULL)
+				SDL_DestroyTexture(gtHSPlayerNames[gHSRank]);
+			sprintf_s(nbuffer, sizeof(nbuffer), "%s_", gNameInput);
+			gtHSPlayerNames[gHSRank] = makeTextTexture(r, gMenuFont, nbuffer, TEXT_COLOR, BG_COLOR, BLENDED);
+			SDL_QueryTexture(gtHSPlayerNames[gHSRank], NULL, NULL, &w, &h);
+			gHSPlayerNames_rect[gHSRank].w = w;
+			gHSPlayerNames_rect[gHSRank].h = h;
+		}
+		break;
 	default:
 		break;
 	}
 
 	return(quit);
+}
+
+void acceptNameInput(SDL_Event *e, SDL_Renderer *r)
+{
+	char nbuffer[MAX_NAME+20];
+	int w, h;
+
+	if (gnumNameInput < MAX_NAME)
+	{
+		if (gtHSPlayerNames[gHSRank] != NULL)
+			SDL_DestroyTexture(gtHSPlayerNames[gHSRank]);
+
+		sprintf_s(gNameInput, sizeof(gNameInput), "%s%s", gNameInput, e->text.text);
+		gnumNameInput = strlen(gNameInput);
+		if (gnumNameInput > MAX_NAME)
+		{
+			gnumNameInput = MAX_NAME;
+			gNameInput[MAX_NAME] = 0;
+		}
+
+		if (gnumNameInput < MAX_NAME)
+		{
+			sprintf_s(nbuffer, sizeof(nbuffer), "%s_", gNameInput);
+			gtHSPlayerNames[gHSRank] = makeTextTexture(r, gMenuFont, nbuffer, TEXT_COLOR, BG_COLOR, BLENDED);
+		}
+		else
+		{
+			gtHSPlayerNames[gHSRank] = makeTextTexture(r, gMenuFont, gNameInput, TEXT_COLOR, BG_COLOR, BLENDED);
+		}
+		SDL_QueryTexture(gtHSPlayerNames[gHSRank], NULL, NULL, &w, &h);
+		gHSPlayerNames_rect[gHSRank].w = w;
+		gHSPlayerNames_rect[gHSRank].h = h;
+	}
 }
 
 void shellLogic(SDL_Renderer *r)
@@ -673,6 +739,7 @@ void drawShell(SDL_Renderer *r)
 		SDL_RenderCopy(r, gtBackSel, NULL, &gBack_rect);
 		break;
 	case HIGHSCORES_MENU:
+	case ENTERNAME_MENU:
 		SDL_RenderCopy(r, gtHighScores, NULL, &gHighScores_rect); //draw title
 		SDL_RenderCopy(r, gtNameTitle, NULL, &gNameTitle_rect); //draw the name title column
 		SDL_RenderCopy(r, gtLevelTitle, NULL, &gLevelTitle_rect); //draw the level title column
@@ -690,15 +757,18 @@ void drawShell(SDL_Renderer *r)
 			if (gtHSTimes[i] != NULL)
 				SDL_RenderCopy(r, gtHSTimes[i], NULL, &gHSTimes_rect[i]);
 		}
-		//draw back button
-		tempbox.w = 10;
-		tempbox.h = 10;
-		tempbox.y = gBack_rect.y + gBack_rect.h / 2 - tempbox.h / 2 + 1;
-		tempbox.x = gBack_rect.x - tempbox.w - 10;
-		DrawBox(r, &tempbox, WHITE);
-		tempbox.x = gBack_rect.x + gBack_rect.w + 10;
-		DrawBox(r, &tempbox, WHITE);
-		SDL_RenderCopy(r, gtBackSel, NULL, &gBack_rect);
+		if (gCurrentMenu == HIGHSCORES_MENU)
+		{
+			//draw back button
+			tempbox.w = 10;
+			tempbox.h = 10;
+			tempbox.y = gBack_rect.y + gBack_rect.h / 2 - tempbox.h / 2 + 1;
+			tempbox.x = gBack_rect.x - tempbox.w - 10;
+			DrawBox(r, &tempbox, WHITE);
+			tempbox.x = gBack_rect.x + gBack_rect.w + 10;
+			DrawBox(r, &tempbox, WHITE);
+			SDL_RenderCopy(r, gtBackSel, NULL, &gBack_rect);
+		}
 		break;
 	case OPTIONS_MENU:
 		SDL_RenderCopy(r, gtOptions, NULL, &gOptions_rect); //draw title
@@ -760,11 +830,11 @@ void drawShell(SDL_Renderer *r)
 	}
 }
 
-void checkIfNewHighScore(int levelAchieved, unsigned long int time)
+void checkIfNewHighScore(int levelAchieved, unsigned long int time, SDL_Renderer *r)
 {
 	int i;
 	int scoreSlot = -1;
-	char buffer[10];
+	//char buffer[10];
 
 	if (levelAchieved < 1) //didn't finish a level don't do anything
 	{
@@ -801,13 +871,20 @@ void checkIfNewHighScore(int levelAchieved, unsigned long int time)
 
 			gHighScores[scoreSlot].level = levelAchieved;
 			gHighScores[scoreSlot].time = time;
-			sprintf_s(buffer, sizeof(buffer), "Player%d",scoreSlot);
-			strcpy(gHighScores[scoreSlot].Name, buffer);
+			//sprintf_s(buffer, sizeof(buffer), "Player%d",scoreSlot);
+			strcpy(gHighScores[scoreSlot].Name, "");
 		}
+		gnumNameInput = 0;
+		strcpy(gNameInput,"");
+		gHSRank = scoreSlot;
+		gCurrentMenu = ENTERNAME_MENU;
+		openHighScoresScreen(r);
+		SDL_StartTextInput(); //enable text input
+
 		//move these when adding name imput
-		gMenuOptions = STARTGAME;
-		gCurrentMenu = MAIN_MENU;
-		writeGameDataFile();
+		//gMenuOptions = STARTGAME;
+		//gCurrentMenu = MAIN_MENU;
+		//writeGameDataFile();
 		//end move for name input
 	}
 }

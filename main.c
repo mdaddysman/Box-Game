@@ -20,10 +20,10 @@ void MoveToGame(SDL_Renderer *r)
 	gProgramState = GAME;
 }
 
-void MoveToShell(int levelAchieved, unsigned long int time)
+void MoveToShell(int levelAchieved, unsigned long int time, SDL_Renderer *r)
 {
 	gProgramState = SHELL;
-	checkIfNewHighScore(levelAchieved, time);
+	checkIfNewHighScore(levelAchieved, time, r);
 }
 
 int main(int argc, char* args[])
@@ -230,7 +230,7 @@ int main(int argc, char* args[])
 				case SDLK_RETURN:
 					if (gProgramState == GAME)
 					{
-						checkEndGame();
+						checkEndGame(renderer);
 						isEdgeHit = pauseGame(e.key.keysym.sym);
 					}
 					break;
@@ -240,6 +240,9 @@ int main(int argc, char* args[])
 				default:
 					break;
 				}
+				break;
+			case SDL_TEXTINPUT:
+				acceptNameInput(&e,renderer);
 				break;
 			default:
 				break;

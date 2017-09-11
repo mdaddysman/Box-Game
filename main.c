@@ -33,6 +33,7 @@ int main(int argc, char* args[])
 	char buffer[15];
 	SDL_Window *window = NULL;
 	SDL_Renderer *renderer = NULL;
+	SDL_Surface *icon = NULL;
 
 	SDL_Texture *tFPS = NULL;
 	SDL_Texture *tLoading = NULL;
@@ -96,6 +97,10 @@ int main(int argc, char* args[])
 		SDL_Quit();
 		return(0);
 	}
+	icon = SDL_CreateRGBSurface(0, 16, 16, 16, 255, 165, 0, SDL_ALPHA_OPAQUE); //make an orange icon
+	SDL_SetWindowIcon(window, icon); //attach it to the window
+	SDL_FreeSurface(icon); //free the surface and set the pointer to NULL 
+	icon = NULL;
 
 	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
 	if (renderer == NULL)

@@ -230,19 +230,19 @@ int main(int argc, char* args[])
 				case SDLK_ESCAPE:
 				case SDLK_UP:
 				case SDLK_DOWN:
+				case SDLK_w:
+				case SDLK_s:
 					if (gProgramState == GAME)
 						isEdgeHit = pauseGame(e.key.keysym.sym);
 					break;
 				case SDLK_RETURN:
+				case SDLK_SPACE:
 					if (gProgramState == GAME)
 					{
 						checkEndGame(renderer);
 						isEdgeHit = pauseGame(e.key.keysym.sym);
 					}
 					break;
-				//case SDLK_f:
-					//drawFPS = !drawFPS; //draw FPS used on all screens and inputs 
-					//break;
 				default:
 					break;
 				}

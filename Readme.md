@@ -12,7 +12,7 @@ Requires in c:\sdl2:
 SDL2 Dynamic-link library:
 - `SDL2.dll`
 - `SDL2_mixer.dll`
-- `smpeg2.dll`
+- `libmpg123-0.dll`
 - `SDL2_ttf.dll`
 - `libfreetype-6.dll`
 - `zlib1.dll`

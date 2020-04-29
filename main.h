@@ -9,6 +9,7 @@
 # define _MAIN_H_
 
 #define _CRT_SECURE_NO_WARNINGS
+#define SDL_MAIN_HANDLED
 #include <SDL.h>
 #include <SDL_mixer.h>
 #include <SDL_ttf.h>
@@ -20,7 +21,7 @@
 
 //game build settings
 //#define _DEBUG_BUILD_ //should debug text be shown 
-#define BUILD_NUMBER 231
+#define BUILD_NUMBER 232
 
 //constants 
 static const int SCREEN_WIDTH = 800;

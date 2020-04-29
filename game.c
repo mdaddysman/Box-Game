@@ -294,6 +294,7 @@ void resetGame(void)
 	gCurrentLevelTime = 0;
 	gPreviousLevelTime = 0;
 	gPaused = false;
+	Mix_PlayMusic(gMusic, -1); //start music
 }
 
 void newGame(SDL_Renderer *r)
@@ -578,7 +579,7 @@ void gameLogic(SDL_Renderer *r, bool isedgehit)
 		SDL_HasIntersection(&playerrect, copyToSDLRect(&gGoalBox, &temprect)) == SDL_TRUE)
 	{
 		gGameState = VICTORY;
-		Mix_HaltMusic();
+		//Mix_HaltMusic();
 		Mix_PlayChannel(-1, gWinSound, 0);
 		gcontinue_rect.y = gvictory_rect.y + gvictory_rect.h + END_TEXT_SPACING; //adjust the continue rect under victory
 
@@ -713,7 +714,7 @@ void processCountdown(void)
 	else if (currentTick >= 3000)
 	{
 		gGameState = GAMEPLAY;
-		Mix_PlayMusic(gMusic, -1);
+		//Mix_PlayMusic(gMusic, -1);
 	}
 }
 

@@ -67,14 +67,14 @@ int main(int argc, char* args[])
 	{
 		printf("SDL could not initialize! Error: %s\n", SDL_GetError());
 		SDL_Quit();
-		return(0);
+		return(-1);
 	}
 
 	if (MIX_INIT_MP3 != (result = Mix_Init(MIX_INIT_MP3)))
 	{
 		printf("SDL Mixer could not initialize! Code: %d Error: %s\n", result, SDL_GetError());
 		SDL_Quit();
-		return(0);
+		return(-2);
 	}
 
 	if (TTF_Init() < 0)
@@ -82,7 +82,7 @@ int main(int argc, char* args[])
 		printf("SDL TTF could not initialize! Error: %s\n", SDL_GetError());
 		Mix_Quit();
 		SDL_Quit();
-		return(0);
+		return(-3);
 	}
 
 	window = SDL_CreateWindow(GAME_NAME, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
@@ -94,7 +94,7 @@ int main(int argc, char* args[])
 		TTF_Quit();
 		Mix_Quit();
 		SDL_Quit();
-		return(0);
+		return(-4);
 	}
 
 	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
@@ -105,7 +105,7 @@ int main(int argc, char* args[])
 		TTF_Quit();
 		Mix_Quit();
 		SDL_Quit();
-		return(0);
+		return(-5);
 	}
 	if (SDL_RenderSetClipRect(renderer, &Clipping_rect) < 0)
 		printf("Clipping not set. Error: %s\n", SDL_GetError());
@@ -121,7 +121,7 @@ int main(int argc, char* args[])
 		TTF_Quit();
 		Mix_Quit();
 		SDL_Quit();
-		return(0);
+		return(-6);
 	}
 	//now that the basics are loaded display a loading message
 	tLoading = makeTextTexture(renderer, gMenuFont, "Loading...", TEXT_COLOR, BG_COLOR, SOLID);
@@ -144,7 +144,7 @@ int main(int argc, char* args[])
 		TTF_Quit();
 		Mix_Quit();
 		SDL_Quit();
-		return(0);
+		return(-7);
 	}
 
 	gSmallFont = TTF_OpenFont(GAME_FONT_FILE, 36);
@@ -156,7 +156,7 @@ int main(int argc, char* args[])
 		TTF_Quit();
 		Mix_Quit();
 		SDL_Quit();
-		return(0);
+		return(-8);
 	}
 
 	gLargeFont = TTF_OpenFont(GAME_FONT_FILE, 144);
@@ -168,7 +168,7 @@ int main(int argc, char* args[])
 		TTF_Quit();
 		Mix_Quit();
 		SDL_Quit();
-		return(0);
+		return(-9);
 	}
 #ifdef _DEBUG_BUILD_
 	printf("Main resources loaded\n");

@@ -434,8 +434,8 @@ bool shellKeyboard(SDL_Event *e, SDL_Renderer *r)
 			switch (gMenuOptions)
 			{
 			case STARTGAME:
-				MoveToGame(r);
 				Mix_HaltMusic();
+				MoveToGame(r);				
 				gMenuOptions = STARTGAME;
 				gCurrentMenu = MAIN_MENU;
 				break;

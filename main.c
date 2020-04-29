@@ -33,6 +33,7 @@ int main(int argc, char* args[])
 	char buffer[15];
 	SDL_Window *window = NULL;
 	SDL_Renderer *renderer = NULL;
+	SDL_Surface *icon = NULL;
 
 	SDL_Texture *tFPS = NULL;
 	SDL_Texture *tLoading = NULL;
@@ -96,6 +97,11 @@ int main(int argc, char* args[])
 		SDL_Quit();
 		return(-4);
 	}
+	icon = SDL_CreateRGBSurface(0, 32, 32, 16, 0, 0, 0, 0); //make a blue icon
+	SDL_FillRect(icon, NULL, SDL_MapRGB(icon->format, 0, 255, 255)); //fill with color
+	SDL_SetWindowIcon(window, icon); //attach it to the window
+	SDL_FreeSurface(icon); //free the surface and set the pointer to NULL 
+	icon = NULL;
 
 	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
 	if (renderer == NULL)
@@ -224,19 +230,19 @@ int main(int argc, char* args[])
 				case SDLK_ESCAPE:
 				case SDLK_UP:
 				case SDLK_DOWN:
+				case SDLK_w:
+				case SDLK_s:
 					if (gProgramState == GAME)
 						isEdgeHit = pauseGame(e.key.keysym.sym);
 					break;
 				case SDLK_RETURN:
+				case SDLK_SPACE:
 					if (gProgramState == GAME)
 					{
 						checkEndGame(renderer);
 						isEdgeHit = pauseGame(e.key.keysym.sym);
 					}
 					break;
-				//case SDLK_f:
-					//drawFPS = !drawFPS; //draw FPS used on all screens and inputs 
-					//break;
 				default:
 					break;
 				}

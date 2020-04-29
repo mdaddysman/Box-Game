@@ -156,7 +156,7 @@ void loadGameResources(SDL_Renderer *r)
 	gvictory_rect.x = gPlayarea.x + gPlayarea.w / 2 - w / 2;
 	gvictory_rect.y = gPlayarea.y + gPlayarea.h / 2 - h / 2;
 
-	gtcontinue = makeTextTexture(r, gSmallFont, "Press ENTER to continue", TEXT_COLOR, BG_COLOR, BLENDED);
+	gtcontinue = makeTextTexture(r, gSmallFont, "Press ENTER or SPACE to continue", TEXT_COLOR, BG_COLOR, BLENDED);
 	SDL_QueryTexture(gtcontinue, NULL, NULL, &w, &h);
 	gcontinue_rect.w = w;
 	gcontinue_rect.h = h;
@@ -423,7 +423,9 @@ bool gameKeyboard(SDL_Renderer *r)
 	case GAMEPLAY:
 		if ( (currentKeyStates[SDL_SCANCODE_LCTRL] || currentKeyStates[SDL_SCANCODE_RCTRL]) && //boost pressed and
 			(currentKeyStates[SDL_SCANCODE_UP] || currentKeyStates[SDL_SCANCODE_DOWN] ||
-			currentKeyStates[SDL_SCANCODE_LEFT] || currentKeyStates[SDL_SCANCODE_RIGHT]) ) //any of the movement keys 
+			currentKeyStates[SDL_SCANCODE_LEFT] || currentKeyStates[SDL_SCANCODE_RIGHT] ||
+			currentKeyStates[SDL_SCANCODE_W] || currentKeyStates[SDL_SCANCODE_S] ||
+			currentKeyStates[SDL_SCANCODE_A] || currentKeyStates[SDL_SCANCODE_D]) ) //any of the movement keys 
 		{
 			if (gBoostPool > 0)
 				movespeed = 4;
@@ -439,13 +441,13 @@ bool gameKeyboard(SDL_Renderer *r)
 				gBoostPool = MAX_BOOST;
 		}
 
-		if (currentKeyStates[SDL_SCANCODE_UP] && !currentKeyStates[SDL_SCANCODE_DOWN])
+		if ( (currentKeyStates[SDL_SCANCODE_UP] && !currentKeyStates[SDL_SCANCODE_DOWN]) || (currentKeyStates[SDL_SCANCODE_W] && !currentKeyStates[SDL_SCANCODE_S]) )
 			gPlayerBox.y = gPlayerBox.y - movespeed;
-		else if (currentKeyStates[SDL_SCANCODE_DOWN] && !currentKeyStates[SDL_SCANCODE_UP])
+		else if ( (currentKeyStates[SDL_SCANCODE_DOWN] && !currentKeyStates[SDL_SCANCODE_UP]) || (currentKeyStates[SDL_SCANCODE_S] && !currentKeyStates[SDL_SCANCODE_W]) )
 			gPlayerBox.y = gPlayerBox.y + movespeed;
-		if (currentKeyStates[SDL_SCANCODE_LEFT] && !currentKeyStates[SDL_SCANCODE_RIGHT])
+		if ( (currentKeyStates[SDL_SCANCODE_LEFT] && !currentKeyStates[SDL_SCANCODE_RIGHT]) || (currentKeyStates[SDL_SCANCODE_A] && !currentKeyStates[SDL_SCANCODE_D]) )
 			gPlayerBox.x = gPlayerBox.x - movespeed;
-		else if (currentKeyStates[SDL_SCANCODE_RIGHT] && !currentKeyStates[SDL_SCANCODE_LEFT])
+		else if ( (currentKeyStates[SDL_SCANCODE_RIGHT] && !currentKeyStates[SDL_SCANCODE_LEFT]) || (currentKeyStates[SDL_SCANCODE_D] && !currentKeyStates[SDL_SCANCODE_A]) )
 			gPlayerBox.x = gPlayerBox.x + movespeed;
 
 		if (gPlayerBox.x < gLeftEdge)
@@ -470,18 +472,8 @@ bool gameKeyboard(SDL_Renderer *r)
 			isedgehit = true;
 		}
 		break;
-	//case GAMEOVER:  //moved to new function 
-	//	if (currentKeyStates[SDL_SCANCODE_RETURN])
-	//	{
-	//		gPlayerBox.invernable = false;
-	//		isedgehit = false;
-	//		//resetGame(); //game is over so reset back to starting values
-	//		//newGame(r); //then start a new game 
-	//		MoveToShell();
-	//	}
-	//	break;
 	case VICTORY:
-		if (currentKeyStates[SDL_SCANCODE_RETURN])
+		if (currentKeyStates[SDL_SCANCODE_RETURN] || currentKeyStates[SDL_SCANCODE_SPACE])
 		{
 			gPlayerBox.invernable = false;
 			isedgehit = false;
@@ -519,14 +511,17 @@ bool pauseGame(SDL_Keycode keycode)
 		}
 		break;
 	case SDLK_UP:
+	case SDLK_w:
 		if (gPaused && gPausedOption > 0)
 			gPausedOption--;
 		break;
 	case SDLK_DOWN:
+	case SDLK_s:
 		if (gPaused && gPausedOption < 1)
 			gPausedOption++;
 		break;
 	case SDLK_RETURN:
+	case SDLK_SPACE:
 		if (gPaused && gPausedOption == 0)
 			gPaused = false;
 		else if (gPaused && gPausedOption == 1)

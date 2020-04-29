@@ -21,7 +21,7 @@
 
 //game build settings
 //#define _DEBUG_BUILD_ //should debug text be shown 
-#define BUILD_NUMBER 232
+#define BUILD_NUMBER 235
 
 //constants 
 static const int SCREEN_WIDTH = 800;

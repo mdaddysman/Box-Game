@@ -421,16 +421,19 @@ bool shellKeyboard(SDL_Event *e, SDL_Renderer *r)
 		switch (e->key.keysym.sym)
 		{
 		case SDLK_UP:
+		case SDLK_w:
 			Mix_PlayChannel(-1, gClickSound, 0);
 			if (gMenuOptions > 0)
 				gMenuOptions--;
 			break;
 		case SDLK_DOWN:
+		case SDLK_s:
 			Mix_PlayChannel(-1, gClickSound, 0);
 			if (gMenuOptions < numMenuOptions - 1)
 				gMenuOptions++;
 			break;
 		case SDLK_RETURN:
+		case SDLK_SPACE:
 			switch (gMenuOptions)
 			{
 			case STARTGAME:
@@ -466,7 +469,7 @@ bool shellKeyboard(SDL_Event *e, SDL_Renderer *r)
 		break;
 	case HOWTOPLAY_MENU:
 	case HIGHSCORES_MENU:
-		if (e->key.keysym.sym == SDLK_RETURN)
+		if (e->key.keysym.sym == SDLK_RETURN || e->key.keysym.sym == SDLK_SPACE)
 		{
 			Mix_PlayChannel(-1, gClickSound, 0);
 			gCurrentMenu = MAIN_MENU;
@@ -476,16 +479,19 @@ bool shellKeyboard(SDL_Event *e, SDL_Renderer *r)
 		switch (e->key.keysym.sym)
 		{
 		case SDLK_UP:
+		case SDLK_w:
 			Mix_PlayChannel(-1, gClickSound, 0);
 			if (gOptionsMenuOptions > 0)
 				gOptionsMenuOptions--;
 			break;
 		case SDLK_DOWN:
+		case SDLK_s:
 			Mix_PlayChannel(-1, gClickSound, 0);
 			if (gOptionsMenuOptions < BACK_OPTIONS)
 				gOptionsMenuOptions++;
 			break;
 		case SDLK_RETURN:
+		case SDLK_SPACE:
 			if (gOptionsMenuOptions == BACK_OPTIONS)
 			{
 				Mix_PlayChannel(-1, gClickSound, 0);
@@ -498,6 +504,7 @@ bool shellKeyboard(SDL_Event *e, SDL_Renderer *r)
 				gDrawFPS = !gDrawFPS;
 			}
 		case SDLK_LEFT:
+		case SDLK_a:
 			switch (gOptionsMenuOptions)
 			{
 			case MASTERVOLUME:
@@ -530,6 +537,7 @@ bool shellKeyboard(SDL_Event *e, SDL_Renderer *r)
 			}
 			break;
 		case SDLK_RIGHT:
+		case SDLK_d:
 			switch (gOptionsMenuOptions)
 			{
 			case MASTERVOLUME:

@@ -9,6 +9,7 @@
 # define _MAIN_H_
 
 #define _CRT_SECURE_NO_WARNINGS
+#define SDL_MAIN_HANDLED
 #include <SDL.h>
 #include <SDL_mixer.h>
 #include <SDL_ttf.h>

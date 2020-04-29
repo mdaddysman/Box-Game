@@ -294,7 +294,7 @@ void resetGame(void)
 	gCurrentLevelTime = 0;
 	gPreviousLevelTime = 0;
 	gPaused = false;
-	Mix_PlayMusic(gMusic, -1);
+	Mix_PlayMusic(gMusic, -1); //start music
 }
 
 void newGame(SDL_Renderer *r)

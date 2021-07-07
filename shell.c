@@ -8,6 +8,9 @@
 
 #include "main.h"
 
+#define NUM_HOW_TO_PLAY 6
+#define NUM_HOW_TO_KEYS 9
+
 enum MenuOptions gMenuOptions; 
 enum CurrentMenu gCurrentMenu;
 enum OptionsMenuOptions gOptionsMenuOptions; 
@@ -25,7 +28,12 @@ SDL_Texture *gtNameTitle, *gtLevelTitle, *gtTimeTitle, *gtRanking[10], *gtHSPlay
 SDL_Rect gNameTitle_rect, gLevelTitle_rect, gTimeTitle_rect, gRanking_rect[10], gHSPlayerNames_rect[10], gHSLevels_rect[10], gHSTimes_rect[10];
 int gnumNameInput, gHSRank; 
 char gNameInput[MAX_NAME+20];
-int gHowToPlayFrame; //frame counter for the how to play animations 
+int gHowToPlayFrame; //frame counter for the how to play animations
+SDL_Texture *gtHowToPlayText[NUM_HOW_TO_PLAY];
+SDL_Rect grHowToPlayText[NUM_HOW_TO_PLAY], gHowToKeyboard[NUM_HOW_TO_KEYS];
+SDL_Texture *gtHowToPlayKeyText[6][2];
+SDL_Rect grHowToPlayKeyText[NUM_HOW_TO_KEYS];
+SDL_Rect gDummyRect, gHowToBoostText, gHowToBoostMeter[2], gHowToDemoRects[5], gHowToVictory;
 
 
 struct AIBox gMenuBoxes[NUM_MENU_BOXES];
@@ -33,13 +41,15 @@ static const int MENU_BOX_SIZE = 10;
 
 struct HighScore gHighScores[10];
 
-extern TTF_Font *gSmallFont, *gLargeFont, *gMenuFont, *gMenuFontSmall; //extern fonts
+//extern TTF_Font *gSmallFont, *gLargeFont, *gMenuFont, *gMenuFontSmall; //extern fonts
 extern bool gDrawFPS; 
 extern bool gUpdateResolution;
+extern SDL_Texture *gtBoost, *gtvictory;
+extern SDL_Rect gBoost_rect, gvictory_rect;
 
 void initalizeShellPointers(void)
 {
-	int i;
+	int i, j;
 	gMenuMusic = NULL;
 	gClickSound = NULL;
 	gtTitle = NULL;
@@ -78,6 +88,13 @@ void initalizeShellPointers(void)
 		gtResolution[i] = NULL;
 		gtResolutionSel[i] = NULL;
 	}
+
+	for (i = 0; i < NUM_HOW_TO_PLAY; i++)
+		gtHowToPlayText[i] = NULL;
+
+	for (i = 0; i < 6; i++)
+		for (j = 0; j < 2; j++)
+			gtHowToPlayKeyText[i][j] = NULL;
 }
 
 void loadShellResources(SDL_Renderer *r)
@@ -174,6 +191,122 @@ void loadShellResources(SDL_Renderer *r)
 	//load how to play menu resources
 	gHowToPlay_rect.x = SCREEN_WIDTH / 2 - gHowToPlay_rect.w / 2;
 	gHowToPlay_rect.y = 10;
+
+	grHowToPlayText[0].x = SCREEN_WIDTH / 2 - grHowToPlayText[0].w / 2;
+	grHowToPlayText[0].y = gHowToPlay_rect.y + gHowToPlay_rect.h + 10;
+
+	grHowToPlayText[1].x = SCREEN_WIDTH / 4 - grHowToPlayText[1].w / 2;
+	grHowToPlayText[1].y = 250;
+
+	grHowToPlayText[2].x = SCREEN_WIDTH / 4 * 3 - grHowToPlayText[2].w / 2;
+	grHowToPlayText[2].y = 250;
+	grHowToPlayText[3].x = SCREEN_WIDTH / 4 * 3 - grHowToPlayText[3].w / 2;
+	grHowToPlayText[3].y = grHowToPlayText[2].y + grHowToPlayText[2].h + 5;
+
+	grHowToPlayText[4].x = SCREEN_WIDTH / 2 - grHowToPlayText[4].w / 2;
+	grHowToPlayText[4].y = 407;
+
+	grHowToPlayText[5].x = SCREEN_WIDTH / 4 - grHowToPlayText[5].w / 2;
+	grHowToPlayText[5].y = grHowToPlayText[1].y + grHowToPlayText[1].h + 5;
+
+	int keysize = 30;
+	gHowToKeyboard[0].y = grHowToPlayText[0].y + grHowToPlayText[0].h + 10;
+	gHowToKeyboard[0].w = keysize;
+	gHowToKeyboard[0].h = keysize;
+	gHowToKeyboard[0].x = SCREEN_WIDTH / 2 - keysize / 2;
+
+	gHowToKeyboard[1].y = gHowToKeyboard[0].y + keysize + 5;
+	gHowToKeyboard[1].w = keysize;
+	gHowToKeyboard[1].h = keysize;
+	gHowToKeyboard[1].x = SCREEN_WIDTH / 2 + keysize / 2 + 5;
+
+	gHowToKeyboard[2].y = gHowToKeyboard[0].y + keysize + 5;
+	gHowToKeyboard[2].w = keysize;
+	gHowToKeyboard[2].h = keysize;
+	gHowToKeyboard[2].x = SCREEN_WIDTH / 2 - keysize / 2;
+
+	gHowToKeyboard[3].y = gHowToKeyboard[0].y + keysize + 5;
+	gHowToKeyboard[3].w = keysize;
+	gHowToKeyboard[3].h = keysize;
+	gHowToKeyboard[3].x = SCREEN_WIDTH / 2 - 3 * keysize / 2 - 5;
+
+	gHowToKeyboard[4].y = grHowToPlayText[0].y + grHowToPlayText[0].h + 10;
+	gHowToKeyboard[4].w = keysize;
+	gHowToKeyboard[4].h = keysize;
+	gHowToKeyboard[4].x = SCREEN_WIDTH / 2 - keysize / 2 + 5 * keysize / 2 + 50;
+
+	gHowToKeyboard[5].y = gHowToKeyboard[0].y + keysize + 5;
+	gHowToKeyboard[5].w = keysize;
+	gHowToKeyboard[5].h = keysize;
+	gHowToKeyboard[5].x = SCREEN_WIDTH / 2 + keysize / 2 + 5 + 5 * keysize / 2 + 50;
+
+	gHowToKeyboard[6].y = gHowToKeyboard[0].y + keysize + 5;
+	gHowToKeyboard[6].w = keysize;
+	gHowToKeyboard[6].h = keysize;
+	gHowToKeyboard[6].x = SCREEN_WIDTH / 2 - keysize / 2 + 5 * keysize / 2 + 50;
+
+	gHowToKeyboard[7].y = gHowToKeyboard[0].y + keysize + 5;
+	gHowToKeyboard[7].w = keysize;
+	gHowToKeyboard[7].h = keysize;
+	gHowToKeyboard[7].x = SCREEN_WIDTH / 2 - 3 * keysize / 2 - 5 + 5 * keysize / 2 + 50;
+
+	int midboxcenter = (400 - (grHowToPlayText[3].y + grHowToPlayText[3].h)) / 2 + grHowToPlayText[3].y + grHowToPlayText[3].h;
+
+	gHowToKeyboard[8].y = midboxcenter - keysize / 2;
+	gHowToKeyboard[8].w = keysize*2;
+	gHowToKeyboard[8].h = keysize;
+	gHowToKeyboard[8].x = SCREEN_WIDTH / 8 * 7 - gHowToKeyboard[8].w / 2;
+
+	for (i = 0; i < 9; i++)
+	{
+		grHowToPlayKeyText[i].x = gHowToKeyboard[i].x + 8;
+		grHowToPlayKeyText[i].y = gHowToKeyboard[i].y + 5;
+		grHowToPlayKeyText[i].w = gHowToKeyboard[i].w - 16;
+		grHowToPlayKeyText[i].h = gHowToKeyboard[i].h - 10;
+	}
+
+	gHowToBoostText.w = gBoost_rect.w;
+	gHowToBoostText.h = gBoost_rect.h;
+	gHowToBoostText.x = SCREEN_WIDTH / 2 + 15;
+	gHowToBoostText.y = grHowToPlayText[3].y + grHowToPlayText[3].h + 10;
+
+	gHowToBoostMeter[0].h = gHowToBoostText.h - 6;
+	gHowToBoostMeter[0].w = 138;
+	gHowToBoostMeter[0].x = gHowToBoostText.x + gHowToBoostText.w + 5;
+	gHowToBoostMeter[0].y = gHowToBoostText.y + 3;
+
+	gHowToBoostMeter[1].h = gHowToBoostText.h - 6;
+	gHowToBoostMeter[1].x = gHowToBoostText.x + gHowToBoostText.w + 5;
+	gHowToBoostMeter[1].y = gHowToBoostText.y + 3;
+	gHowToBoostMeter[1].w = 138;
+
+	for (i = 0; i < 5; i++)
+	{
+		gHowToDemoRects[i].w = MENU_BOX_SIZE;
+		gHowToDemoRects[i].h = MENU_BOX_SIZE;
+	}
+
+	gHowToDemoRects[0].x = SCREEN_WIDTH / 4 - 61;
+	gHowToDemoRects[0].y = midboxcenter - gHowToDemoRects[0].h / 2;
+	gHowToDemoRects[1].x = SCREEN_WIDTH / 4 + 61;
+	gHowToDemoRects[1].y = midboxcenter - gHowToDemoRects[1].h / 2;
+
+	gHowToDemoRects[2].x = gHowToBoostText.x;
+	gHowToDemoRects[2].y = midboxcenter + 15;
+
+	gHowToDemoRects[3].x = SCREEN_WIDTH / 4;
+	gHowToDemoRects[3].y = 500;
+
+	gHowToDemoRects[4].x = SCREEN_WIDTH / 4 * 3;
+	gHowToDemoRects[4].y = 500;	
+
+	gHowToVictory.w = SCREEN_WIDTH / 2 - 20;
+	gHowToVictory.y = grHowToPlayText[5].y + grHowToPlayText[5].h + 10;
+	gHowToVictory.h = 400 - 10 - gHowToVictory.y;
+	gHowToVictory.x = 10;
+	
+	
+
 	gHowToPlayFrame = 0;
 	//end how to play menu
 
@@ -214,7 +347,7 @@ void loadShellResources(SDL_Renderer *r)
 
 void freeShellResources(void)
 {
-	int i;
+	int i, j;
 
 	if (gtTitle != NULL)
 		SDL_DestroyTexture(gtTitle);
@@ -298,6 +431,15 @@ void freeShellResources(void)
 		if (gtResolutionSel[i] != NULL)
 			SDL_DestroyTexture(gtResolutionSel[i]);
 	}
+	
+	for (i = 0; i < NUM_HOW_TO_PLAY; i++)
+		if (gtHowToPlayText[i] != NULL)
+			SDL_DestroyTexture(gtHowToPlayText[i]);	
+
+	for (i = 0; i < 6; i++)
+		for (j = 0; j < 2; j++)
+			if (gtHowToPlayKeyText[i][j] != NULL)
+				SDL_DestroyTexture(gtHowToPlayKeyText[i][j]);
 }
 
 void openHighScoresScreen(SDL_Renderer *r)
@@ -411,6 +553,9 @@ bool shellKeyboard(SDL_Event *e, SDL_Renderer *r)
 		{
 			Mix_PlayChannel(-1, gClickSound, 0);
 			gCurrentMenu = MAIN_MENU;
+			gHowToPlayFrame = 0;
+			gHowToDemoRects[2].x = gHowToBoostText.x;
+			gHowToBoostMeter[1].w = 138;
 		}
 		break;
 	case OPTIONS_MENU:
@@ -636,6 +781,8 @@ void drawShell(SDL_Renderer *r)
 {
 	int i, startx, starty, x, y;
 	SDL_Rect tempbox;
+	int speed = 1;
+	int movespeed;
 
 	if (Mix_PlayingMusic() == 0)
 		Mix_PlayMusic(gMenuMusic, -1);
@@ -670,36 +817,121 @@ void drawShell(SDL_Renderer *r)
 		break;
 	case HOWTOPLAY_MENU:
 		SDL_RenderCopy(r, gtHowToPlay, NULL, &gHowToPlay_rect); //draw title
+		for (i = 0; i < NUM_HOW_TO_PLAY; i++)
+			SDL_RenderCopy(r, gtHowToPlayText[i], NULL, &grHowToPlayText[i]); //all text
+		SDL_SetRenderDrawColor(r,255,255,255,SDL_ALPHA_OPAQUE);
+		for (i = 0; i < 3; i++)
+		{
+			SDL_RenderDrawLine(r, 0, gHowToPlay_rect.y + gHowToPlay_rect.h + 2 + i, 800, gHowToPlay_rect.y + gHowToPlay_rect.h + 2 + i);
+			SDL_RenderDrawLine(r, 0, 240 + i, 800, 240 + i);
+			SDL_RenderDrawLine(r, SCREEN_WIDTH / 2 - 1 + i, 240, SCREEN_WIDTH / 2 - 1 + i, 400);
+			SDL_RenderDrawLine(r, 0, 402 + i, 800, 402 + i);
+			SDL_RenderDrawLine(r, 0, gBack_rect.y - 8, 800, gBack_rect.y - 8);
+		}
+		int quadrant = gHowToPlayFrame / 60;
+		for (i = 0; i < 8; i++)
+		{
+			if (i == quadrant || (i > 3 && i - 4 == quadrant))
+			{
+				SDL_RenderFillRect(r, &gHowToKeyboard[i]);
+				if (i > 3)
+					SDL_RenderCopyEx(r, gtHowToPlayKeyText[4][1], NULL, &grHowToPlayKeyText[i], 90 * (i - 4), NULL, SDL_FLIP_NONE);
+				else
+					SDL_RenderCopy(r, gtHowToPlayKeyText[i][1], NULL, &grHowToPlayKeyText[i]);
+			}
+			else
+			{
+				SDL_RenderDrawRect(r, &gHowToKeyboard[i]);
+				if (i > 3)
+					SDL_RenderCopyEx(r, gtHowToPlayKeyText[4][0], NULL, &grHowToPlayKeyText[i], 90 * (i-4), NULL, SDL_FLIP_NONE);
+				else
+					SDL_RenderCopy(r, gtHowToPlayKeyText[i][0], NULL, &grHowToPlayKeyText[i]);
+			}
+		}
+		
 		//draw the player movement sequence
-		startx = 100;
-		starty = 200; //starting position
+		startx = SCREEN_WIDTH / 2 - 3 * gHowToKeyboard[0].w/2 - 110;
+		starty = 215; //starting position
 		x = startx;
 		y = starty;
 
-		y = y - 2*gHowToPlayFrame;
+		y = y - speed * gHowToPlayFrame;
 		if (y < starty - 60)
 			y = starty - 60;
 
-		//x = x + 2 * (gHowToPlayFrame - 10);
-		//if (x < startx)
-		//{
-		//	x = startx;
-		//}
-		x = (gHowToPlayFrame > 30) ? x + 2 * (gHowToPlayFrame - 30) : x; 
+		x = (gHowToPlayFrame > 60) ? x + speed * (gHowToPlayFrame - 60) : x;
 		if (x > startx + 60)
 			x = startx + 60;
-		
-		y = (gHowToPlayFrame > 60) ? y + 2 * (gHowToPlayFrame - 60) : y; 
-		if (gHowToPlayFrame > 90)
+
+		y = (gHowToPlayFrame > 120) ? y + speed * (gHowToPlayFrame - 120) : y;
+		if (gHowToPlayFrame > 180)
 			y = starty;
 
-		x = (gHowToPlayFrame > 90) ? x - 2 * (gHowToPlayFrame - 90) : x;
-		
+		x = (gHowToPlayFrame > 180) ? x - speed * (gHowToPlayFrame - 180) : x;
+
 		tempbox.w = 10;
 		tempbox.h = 10;
 		tempbox.x = x;
 		tempbox.y = y;
 		DrawBox(r, &tempbox, WHITE);
+
+		//goal section
+		if (gHowToPlayFrame < 120)
+		{
+			tempbox.x = gHowToDemoRects[0].x + gHowToPlayFrame;
+			tempbox.y = gHowToDemoRects[0].y;
+			DrawBox(r, &tempbox, WHITE);
+			DrawBox(r, &gHowToDemoRects[1], BLUE);
+		}
+		else
+			SDL_RenderCopy(r, gtvictory, NULL, &gHowToVictory);
+
+		//boost section
+		SDL_SetRenderDrawColor(r, 255, 255, 255, SDL_ALPHA_OPAQUE);		
+		if (quadrant == 0 || quadrant == 2)
+		{			
+			SDL_RenderFillRect(r, &gHowToKeyboard[8]);
+			SDL_RenderCopy(r, gtHowToPlayKeyText[5][1], NULL, &grHowToPlayKeyText[8]);
+		}
+		else
+		{
+			SDL_RenderDrawRect(r, &gHowToKeyboard[8]);
+			SDL_RenderCopy(r, gtHowToPlayKeyText[5][0], NULL, &grHowToPlayKeyText[8]);
+		}
+		switch (quadrant)
+		{
+		case 0:
+			movespeed = 2;
+			gHowToBoostMeter[1].w -= 1;
+			break;
+		case 1:
+			movespeed = 1;
+			gHowToBoostMeter[1].w += 1;
+			break;
+		case 2:
+			movespeed = -2;
+			gHowToBoostMeter[1].w -= 1;
+			break;
+		case 3:
+			movespeed = -1;
+			gHowToBoostMeter[1].w += 1;
+			break;
+		default:
+			movespeed = 0;
+			break;
+		}
+		gHowToDemoRects[2].x += movespeed;
+
+		SDL_RenderCopy(r, gtBoost, NULL, &gHowToBoostText);
+		SDL_SetRenderDrawColor(r, 34, 139, 34, SDL_ALPHA_OPAQUE);
+		SDL_RenderDrawRect(r, &gHowToBoostMeter[0]);
+		DrawBox(r, &gHowToBoostMeter[1], GREEN);
+		DrawBox(r, &gHowToDemoRects[2], WHITE);
+		
+		//enemy section
+		DrawBox(r, &gHowToDemoRects[3], WHITE);
+		DrawBox(r, &gHowToDemoRects[4], ORANGE);
+
 		//draw back button
 		tempbox.w = 10;
 		tempbox.h = 10;
@@ -710,7 +942,7 @@ void drawShell(SDL_Renderer *r)
 		DrawBox(r, &tempbox, WHITE);
 		SDL_RenderCopy(r, gtBackSel, NULL, &gBack_rect);
 		gHowToPlayFrame++; //increase the how to play frame counter
-		if (gHowToPlayFrame > 120)
+		if (gHowToPlayFrame > 240)
 			gHowToPlayFrame = 0; //if 120 frames (0-119) have passed reset to zero
 		break;
 	case HIGHSCORES_MENU:
@@ -1031,7 +1263,7 @@ void resetHighScores(void)
 bool loadTextResources(SDL_Renderer *r)
 {
 	SDL_Color Select_Color = { 0, 255, 255 };
-	int i;
+	int i, j;
 	char buffer[100];
 
 	if (gtTitle != NULL)
@@ -1146,6 +1378,44 @@ bool loadTextResources(SDL_Renderer *r)
 		gtRanking[i] = makeTextTexture(r, MENU_LARGE, buffer, TEXT_COLOR, BG_COLOR, BLENDED, &gRanking_rect[i]);
 	}
 
+	for (i = 0; i < NUM_HOW_TO_PLAY; i++)
+	{
+		if (gtHowToPlayText[i] != NULL)
+			SDL_DestroyTexture(gtHowToPlayText[i]);
+		gtHowToPlayText[i] = NULL;
+	}
+
+	gtHowToPlayText[0] = makeTextTexture(r, MENU_SMALL, "The player is a white box. Use WASD or arrow keys to move the player.", TEXT_COLOR, BG_COLOR, BLENDED, &grHowToPlayText[0]);
+	gtHowToPlayText[1] = makeTextTexture(r, MENU_SMALL, "The goal is to touch the blue box.", TEXT_COLOR, BG_COLOR, BLENDED, &grHowToPlayText[1]);
+	gtHowToPlayText[2] = makeTextTexture(r, MENU_SMALL, "Hold CTRL to use the boost.", TEXT_COLOR, BG_COLOR, BLENDED, &grHowToPlayText[2]);
+	gtHowToPlayText[3] = makeTextTexture(r, MENU_SMALL, "Using the boost depletes the boost supply.", TEXT_COLOR, BG_COLOR, BLENDED, &grHowToPlayText[3]);
+	gtHowToPlayText[4] = makeTextTexture(r, MENU_SMALL, "Avoid orange and yellow boxes and the edge. Touching either removes a Hit Point.", TEXT_COLOR, BG_COLOR, BLENDED, &grHowToPlayText[4]);
+	gtHowToPlayText[5] = makeTextTexture(r, MENU_SMALL, "The challenge increases with each level.", TEXT_COLOR, BG_COLOR, BLENDED, &grHowToPlayText[5]);
+
+	for (i = 0; i < 6; i++)
+	{
+		for (j = 0; j < 2; j++)
+		{
+			if (gtHowToPlayKeyText[i][j] != NULL)
+				SDL_DestroyTexture(gtHowToPlayKeyText[i][j]);
+			gtHowToPlayKeyText[i][j] = NULL;
+		}
+	}
+
+	gtHowToPlayKeyText[0][0] = makeTextTexture(r, MENU_LARGE, "W", TEXT_COLOR, BG_COLOR, BLENDED, &gDummyRect);
+	gtHowToPlayKeyText[1][0] = makeTextTexture(r, MENU_LARGE, "D", TEXT_COLOR, BG_COLOR, BLENDED, &gDummyRect);
+	gtHowToPlayKeyText[2][0] = makeTextTexture(r, MENU_LARGE, "S", TEXT_COLOR, BG_COLOR, BLENDED, &gDummyRect);
+	gtHowToPlayKeyText[3][0] = makeTextTexture(r, MENU_LARGE, "A", TEXT_COLOR, BG_COLOR, BLENDED, &gDummyRect);
+	gtHowToPlayKeyText[4][0] = makeTextTexture(r, MENU_LARGE, "^", TEXT_COLOR, BG_COLOR, BLENDED, &gDummyRect);
+	gtHowToPlayKeyText[5][0] = makeTextTexture(r, MENU_LARGE, "CTRL", TEXT_COLOR, BG_COLOR, BLENDED, &gDummyRect);
+
+	gtHowToPlayKeyText[0][1] = makeTextTexture(r, MENU_LARGE, "W", BG_COLOR, BG_COLOR, BLENDED, &gDummyRect);
+	gtHowToPlayKeyText[1][1] = makeTextTexture(r, MENU_LARGE, "D", BG_COLOR, BG_COLOR, BLENDED, &gDummyRect);
+	gtHowToPlayKeyText[2][1] = makeTextTexture(r, MENU_LARGE, "S", BG_COLOR, BG_COLOR, BLENDED, &gDummyRect);
+	gtHowToPlayKeyText[3][1] = makeTextTexture(r, MENU_LARGE, "A", BG_COLOR, BG_COLOR, BLENDED, &gDummyRect);
+	gtHowToPlayKeyText[4][1] = makeTextTexture(r, MENU_LARGE, "^", BG_COLOR, BG_COLOR, BLENDED, &gDummyRect);
+	gtHowToPlayKeyText[5][1] = makeTextTexture(r, MENU_LARGE, "CTRL", BG_COLOR, BG_COLOR, BLENDED, &gDummyRect);
+	
 	return loadGameTextResources(r);
 }
 

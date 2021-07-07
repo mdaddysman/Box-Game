@@ -739,7 +739,7 @@ void drawPlayArea(SDL_Renderer *r)
 	SDL_RenderCopy(r, gtHitPoints, NULL, &gHitPoints_rect);
 	SDL_RenderCopy(r, gtBoost, NULL, &gBoost_rect);
 	DrawBox(r, &gBoostmeter_rect, GREEN);
-	if (gBoostPool < MAX_BOOST) //draw the boost meeter depletion 
+	if (gBoostPool < MAX_BOOST) //draw the boost meter depletion 
 	{
 		gBoostdeplet_rect.w = (int)((MAX_BOOST - gBoostPool) / MAX_BOOST * 200);
 		gBoostdeplet_rect.x = gBoostmeter_rect.x + gBoostmeter_rect.w - 3 - gBoostdeplet_rect.w;

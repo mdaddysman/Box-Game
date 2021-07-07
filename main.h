@@ -76,7 +76,8 @@ enum MoveDirection { NORTH = 0, SOUTH, EAST, WEST, NORTHEAST, NORTHWEST, SOUTHEA
 enum AIType {RANDOM = 0, SEEK, NONE};
 enum MenuOptions {STARTGAME = 0, HOWTOPLAY, HIGHSCORES, OPTIONS, EXIT, numMenuOptions};
 enum CurrentMenu {MAIN_MENU = 0, HOWTOPLAY_MENU, HIGHSCORES_MENU, OPTIONS_MENU, ENTERNAME_MENU};
-enum OptionsMenuOptions {MASTERVOLUME = 0, MUSICVOLUME, SOUNDVOLUME, FPSONOFF, BACK_OPTIONS };
+enum OptionsMenuOptions {MASTERVOLUME = 0, MUSICVOLUME, SOUNDVOLUME, FPSONOFF, RESOLUTION, BACK_OPTIONS };
+enum ResolutionOptions { r800x600 = 0, r1024x768, r1280x960, MAX_RESOLUTIONS };
 
 struct AIBox {
 	int x;
@@ -142,6 +143,7 @@ void openHighScoresScreen(SDL_Renderer *r);
 void checkIfNewHighScore(int levelAchieved, unsigned long int time, SDL_Renderer *r);
 void acceptNameInput(SDL_Event *e, SDL_Renderer *r);
 
+
 //found in main.c
 void MoveToGame(SDL_Renderer *r);
 void MoveToShell(int levelAchieved, unsigned long int time, SDL_Renderer *r);
@@ -150,5 +152,6 @@ SDL_Texture* makeTextTexture(SDL_Renderer *r, TTF_Font *font, const char *text, 
 SDL_Rect* copyToSDLRect(struct AIBox *ai, SDL_Rect *sdl);
 void seedrnd(void);
 int rnd(int range);
+bool updateResolution(SDL_Window *win, SDL_Renderer *r);
 
 #endif

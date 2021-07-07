@@ -12,6 +12,9 @@ unsigned int gRandCount; // number of times the random number generator has been
 TTF_Font *gSmallFont, *gLargeFont, *gMenuFont, *gMenuFontSmall;
 enum ProgramState gProgramState;
 bool gDrawFPS;
+bool gUpdateResolution;
+
+extern enum ResolutionOptions gResolutionOptions;
 
 void MoveToGame(SDL_Renderer *r)
 {
@@ -31,6 +34,7 @@ int main(int argc, char* args[])
 	int w, h;
 	int result = 0;
 	char buffer[15];
+	int fontScale = 1; //try to scale the font, doesn't work need another solution
 	SDL_Window *window = NULL;
 	SDL_Renderer *renderer = NULL;
 	SDL_Surface *icon = NULL;
@@ -46,6 +50,7 @@ int main(int argc, char* args[])
 	bool quit = false;	
 	bool isEdgeHit = false;
 	gDrawFPS = false;
+	gUpdateResolution = false;
 		
 	int fps = 0; 
 	int framecount = 0; 
@@ -113,12 +118,14 @@ int main(int argc, char* args[])
 		SDL_Quit();
 		return(-5);
 	}
+	if (SDL_RenderSetLogicalSize(renderer, SCREEN_WIDTH, SCREEN_HEIGHT))
+		printf("Renderer Logical Size not set. Error: %s\n", SDL_GetError());
 	if (SDL_RenderSetClipRect(renderer, &Clipping_rect) < 0)
 		printf("Clipping not set. Error: %s\n", SDL_GetError());
 	if (SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND) < 0)
 		printf("Blending not set. Error: %s\n", SDL_GetError());
 
-	gMenuFont = TTF_OpenFont(MENU_FONT_FILE, 32);
+	gMenuFont = TTF_OpenFont(MENU_FONT_FILE, 32*fontScale);
 	if (gMenuFont == NULL)
 	{
 		printf("Font could not be loaded Error:%s\n", SDL_GetError());
@@ -141,7 +148,7 @@ int main(int argc, char* args[])
 	SDL_RenderCopy(renderer, tLoading, NULL, &Loading_rect);
 	SDL_RenderPresent(renderer); //present the frame 
 
-	gMenuFontSmall = TTF_OpenFont(MENU_FONT_FILE, 16);
+	gMenuFontSmall = TTF_OpenFont(MENU_FONT_FILE, 16*fontScale);
 	if (gMenuFont == NULL)
 	{
 		printf("Font could not be loaded Error:%s\n", SDL_GetError());
@@ -153,7 +160,7 @@ int main(int argc, char* args[])
 		return(-7);
 	}
 
-	gSmallFont = TTF_OpenFont(GAME_FONT_FILE, 36);
+	gSmallFont = TTF_OpenFont(GAME_FONT_FILE, 36*fontScale);
 	if (gSmallFont == NULL)
 	{
 		printf("Font could not be loaded Error:%s\n", SDL_GetError());
@@ -165,7 +172,7 @@ int main(int argc, char* args[])
 		return(-8);
 	}
 
-	gLargeFont = TTF_OpenFont(GAME_FONT_FILE, 144);
+	gLargeFont = TTF_OpenFont(GAME_FONT_FILE, 144*fontScale);
 	if (gLargeFont == NULL)
 	{
 		printf("Large font could not be loaded Error:%s\n", SDL_GetError());
@@ -215,6 +222,9 @@ int main(int argc, char* args[])
 	while (!quit)
 	{
 		isEdgeHit = false;
+		if (gUpdateResolution)
+			updateResolution(window,renderer);
+
 		while (SDL_PollEvent(&e) != 0)
 		{
 			switch (e.type)
@@ -298,7 +308,7 @@ int main(int argc, char* args[])
 		}
 
 		SDL_RenderPresent(renderer); //present the frame 
-
+		
 		//process clock stuff 
 		currentTick = SDL_GetTicks();
 		if (currentTick - startTick >= 1000) //if longer than one second
@@ -450,6 +460,36 @@ SDL_Rect* copyToSDLRect(struct AIBox *ai, SDL_Rect *sdl)
 	sdl->w = ai->w;
 	sdl->h = ai->h;
 	return sdl;
+}
+
+bool updateResolution(SDL_Window *win, SDL_Renderer *r)
+{
+	int w, h; 
+
+	switch (gResolutionOptions)
+	{
+	case r800x600:
+		w = 800; h = 600;
+		break;
+	case r1024x768:
+		w = 1024; h = 768;
+		break;
+	case r1280x960:
+		w = 1280; h = 960;
+		break;
+	default:
+		break;
+	}
+
+	SDL_SetWindowSize(win, w, h);
+	SDL_Rect Clipping_rect = {
+		0, 0,
+		w, h
+	};
+	SDL_RenderSetClipRect(r, &Clipping_rect);
+	SDL_SetWindowPosition(win, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+	gUpdateResolution = false;
+	return true;
 }
 
 void seedrnd(void)

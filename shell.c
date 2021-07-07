@@ -11,19 +11,22 @@
 enum MenuOptions gMenuOptions; 
 enum CurrentMenu gCurrentMenu;
 enum OptionsMenuOptions gOptionsMenuOptions; 
+enum ResolutionOptions gResolutionOptions;
 SDL_Texture *gtTitle, *gtMenuOptions[numMenuOptions], *gtMenuOptionsSel[numMenuOptions], *gtVersionText[3];
 SDL_Rect gTitle_rect, gMenuOptions_rect[numMenuOptions], gVersion_rect[3];
 SDL_Texture *gtBack, *gtBackSel, *gtHowToPlay, *gtHighScores, *gtOptions;
 SDL_Rect gBack_rect, gHowToPlay_rect, gHighScores_rect, gOptions_rect;
 Mix_Music *gMenuMusic;
 Mix_Chunk *gClickSound; 
-SDL_Texture *gtMasterVolume, *gtMusicVolume, *gtSoundVolume, *gtFPSOnOff;
-SDL_Rect gMasterVolume_rect, gMusicVolume_rect, gSoundVolume_rect, gFPSOnOff_rect;
+SDL_Texture *gtMasterVolume, *gtMusicVolume, *gtSoundVolume, *gtFPSOnOff, *gtResolution[MAX_RESOLUTIONS], *gtResolutionSel[MAX_RESOLUTIONS];
+SDL_Rect gMasterVolume_rect, gMusicVolume_rect, gSoundVolume_rect, gFPSOnOff_rect, gResolution_rect[MAX_RESOLUTIONS];
 int gMasterVolume, gMusicVolume, gSoundVolume; //volume levels 
 SDL_Texture *gtNameTitle, *gtLevelTitle, *gtTimeTitle, *gtRanking[10], *gtHSPlayerNames[10], *gtHSLevels[10], *gtHSTimes[10];
 SDL_Rect gNameTitle_rect, gLevelTitle_rect, gTimeTitle_rect, gRanking_rect[10], gHSPlayerNames_rect[10], gHSLevels_rect[10], gHSTimes_rect[10];
 int gnumNameInput, gHSRank; 
 char gNameInput[MAX_NAME+20];
+int gHowToPlayFrame; //frame counter for the how to play animations 
+
 
 struct AIBox gMenuBoxes[NUM_MENU_BOXES];
 static const int MENU_BOX_SIZE = 10;
@@ -32,6 +35,7 @@ struct HighScore gHighScores[10];
 
 extern TTF_Font *gSmallFont, *gLargeFont, *gMenuFont, *gMenuFontSmall; //extern fonts
 extern bool gDrawFPS; 
+extern bool gUpdateResolution;
 
 
 void loadShellResources(SDL_Renderer *r)
@@ -73,6 +77,13 @@ void loadShellResources(SDL_Renderer *r)
 		gtHSLevels[i] = NULL;
 		gtHSTimes[i] = NULL;
 	}
+
+	for (i = 0; i < MAX_RESOLUTIONS; i++)
+	{
+		gtResolution[i] = NULL;
+		gtResolutionSel[i] = NULL;
+	}
+		
 
 	gMasterVolume = MAX_VOLUME;
 	gSoundVolume = MAX_VOLUME;
@@ -118,7 +129,7 @@ void loadShellResources(SDL_Renderer *r)
 	gtVersionText[1] = makeTextTexture(r, gMenuFontSmall,
 		"Game Music Copyright 2017 by Brian Hicks", TEXT_COLOR, BG_COLOR, BLENDED);
 	gtVersionText[2] = makeTextTexture(r, gMenuFontSmall, 
-		"Game Code Copyright 2017 under GNU GPLv3 by Matthew K. Daddysman", TEXT_COLOR, BG_COLOR, BLENDED);
+		"Game Code Copyright 2017-2020 under GNU GPLv3 by Matthew K. Daddysman", TEXT_COLOR, BG_COLOR, BLENDED);
 	for (i = 0; i < 3; i++)
 	{
 		SDL_QueryTexture(gtVersionText[i], NULL, NULL, &w, &h);
@@ -210,6 +221,30 @@ void loadShellResources(SDL_Renderer *r)
 	gFPSOnOff_rect.y = gSoundVolume_rect.y + gSoundVolume_rect.h + 25;
 	gFPSOnOff_rect.w = w;
 	gFPSOnOff_rect.h = h;
+
+	gtResolution[0] = makeTextTexture(r, gMenuFont, "Resolution: 800 x 600", TEXT_COLOR, BG_COLOR, BLENDED);
+	gtResolutionSel[0] = makeTextTexture(r, gMenuFont, "Resolution: 800 x 600", Select_Color, BG_COLOR, BLENDED);
+	SDL_QueryTexture(gtResolution[0], NULL, NULL, &w, &h);
+	gResolution_rect[0].x = optionsLeftOffset;
+	gResolution_rect[0].y = gFPSOnOff_rect.y + gFPSOnOff_rect.h + 25;
+	gResolution_rect[0].w = w;
+	gResolution_rect[0].h = h;
+
+	gtResolution[1] = makeTextTexture(r, gMenuFont, "Resolution: 1024 x 768", TEXT_COLOR, BG_COLOR, BLENDED);
+	gtResolutionSel[1] = makeTextTexture(r, gMenuFont, "Resolution: 1024 x 768", Select_Color, BG_COLOR, BLENDED);
+	SDL_QueryTexture(gtResolution[1], NULL, NULL, &w, &h);
+	gResolution_rect[1].x = optionsLeftOffset;
+	gResolution_rect[1].y = gFPSOnOff_rect.y + gFPSOnOff_rect.h + 25;
+	gResolution_rect[1].w = w;
+	gResolution_rect[1].h = h;
+
+	gtResolution[2] = makeTextTexture(r, gMenuFont, "Resolution: 1280 x 960", TEXT_COLOR, BG_COLOR, BLENDED);
+	gtResolutionSel[2] = makeTextTexture(r, gMenuFont, "Resolution: 1280 x 960", Select_Color, BG_COLOR, BLENDED);
+	SDL_QueryTexture(gtResolution[2], NULL, NULL, &w, &h);
+	gResolution_rect[2].x = optionsLeftOffset;
+	gResolution_rect[2].y = gFPSOnOff_rect.y + gFPSOnOff_rect.h + 25;
+	gResolution_rect[2].w = w;
+	gResolution_rect[2].h = h;
 	//end option menu
 
 	//load how to play menu resources
@@ -219,6 +254,8 @@ void loadShellResources(SDL_Renderer *r)
 	gHowToPlay_rect.y = 10;
 	gHowToPlay_rect.w = w;
 	gHowToPlay_rect.h = h;
+
+	gHowToPlayFrame = 0;
 	//end how to play menu
 
 	//load high scores menu resources
@@ -273,6 +310,7 @@ void loadShellResources(SDL_Renderer *r)
 	//set default menu options
 	gMenuOptions = STARTGAME;
 	gCurrentMenu = MAIN_MENU;
+	gResolutionOptions = r800x600;
 }
 
 void freeShellResources(void)
@@ -352,6 +390,15 @@ void freeShellResources(void)
 
 	if (gClickSound != NULL)
 		Mix_FreeChunk(gClickSound);
+
+	for (i = 0; i < MAX_RESOLUTIONS; i++)
+	{
+		if (gtResolution[i] != NULL)
+			SDL_DestroyTexture(gtResolution[i]);
+
+		if (gtResolutionSel[i] != NULL)
+			SDL_DestroyTexture(gtResolutionSel[i]);
+	}
 }
 
 void openHighScoresScreen(SDL_Renderer *r)
@@ -445,6 +492,7 @@ bool shellKeyboard(SDL_Event *e, SDL_Renderer *r)
 			case HOWTOPLAY:
 				Mix_PlayChannel(-1, gClickSound, 0);
 				gCurrentMenu = HOWTOPLAY_MENU;
+				gHowToPlayFrame = 0;
 				break;
 			case HIGHSCORES:
 				Mix_PlayChannel(-1, gClickSound, 0);
@@ -534,6 +582,13 @@ bool shellKeyboard(SDL_Event *e, SDL_Renderer *r)
 				Mix_PlayChannel(-1, gClickSound, 0);
 				gDrawFPS = !gDrawFPS;
 				break;
+			case RESOLUTION:
+				if (gResolutionOptions == 0)
+					gResolutionOptions = MAX_RESOLUTIONS - 1;
+				else
+					gResolutionOptions--;
+				gUpdateResolution = true;
+				break;				
 			}
 			break;
 		case SDLK_RIGHT:
@@ -566,6 +621,13 @@ bool shellKeyboard(SDL_Event *e, SDL_Renderer *r)
 			case FPSONOFF:
 				Mix_PlayChannel(-1, gClickSound, 0);
 				gDrawFPS = !gDrawFPS;
+				break;
+			case RESOLUTION:
+				if (gResolutionOptions == MAX_RESOLUTIONS-1)
+					gResolutionOptions = 0;
+				else
+					gResolutionOptions++;
+				gUpdateResolution = true;
 				break;
 			}
 			break;
@@ -700,7 +762,7 @@ void shellLogic(SDL_Renderer *r)
 
 void drawShell(SDL_Renderer *r)
 {
-	int i;
+	int i, startx, starty, x, y, temp;
 	SDL_Rect tempbox;
 
 	if (Mix_PlayingMusic() == 0)
@@ -736,6 +798,36 @@ void drawShell(SDL_Renderer *r)
 		break;
 	case HOWTOPLAY_MENU:
 		SDL_RenderCopy(r, gtHowToPlay, NULL, &gHowToPlay_rect); //draw title
+		//draw the player movement sequence
+		startx = 100;
+		starty = 200; //starting position
+		x = startx;
+		y = starty;
+
+		y = y - 2*gHowToPlayFrame;
+		if (y < starty - 60)
+			y = starty - 60;
+
+		//x = x + 2 * (gHowToPlayFrame - 10);
+		//if (x < startx)
+		//{
+		//	x = startx;
+		//}
+		x = (gHowToPlayFrame > 30) ? x + 2 * (gHowToPlayFrame - 30) : x; 
+		if (x > startx + 60)
+			x = startx + 60;
+		
+		y = (gHowToPlayFrame > 60) ? y + 2 * (gHowToPlayFrame - 60) : y; 
+		if (gHowToPlayFrame > 90)
+			y = starty;
+
+		x = (gHowToPlayFrame > 90) ? x - 2 * (gHowToPlayFrame - 90) : x;
+		
+		tempbox.w = 10;
+		tempbox.h = 10;
+		tempbox.x = x;
+		tempbox.y = y;
+		DrawBox(r, &tempbox, WHITE);
 		//draw back button
 		tempbox.w = 10;
 		tempbox.h = 10;
@@ -745,6 +837,9 @@ void drawShell(SDL_Renderer *r)
 		tempbox.x = gBack_rect.x + gBack_rect.w + 10;
 		DrawBox(r, &tempbox, WHITE);
 		SDL_RenderCopy(r, gtBackSel, NULL, &gBack_rect);
+		gHowToPlayFrame++; //increase the how to play frame counter
+		if (gHowToPlayFrame > 120)
+			gHowToPlayFrame = 0; //if 120 frames (0-119) have passed reset to zero
 		break;
 	case HIGHSCORES_MENU:
 	case ENTERNAME_MENU:
@@ -784,6 +879,10 @@ void drawShell(SDL_Renderer *r)
 		SDL_RenderCopy(r, gtMusicVolume, NULL, &gMusicVolume_rect);
 		SDL_RenderCopy(r, gtSoundVolume, NULL, &gSoundVolume_rect);
 		SDL_RenderCopy(r, gtFPSOnOff, NULL, &gFPSOnOff_rect);
+		if (gOptionsMenuOptions == RESOLUTION)
+			SDL_RenderCopy(r, gtResolutionSel[gResolutionOptions], NULL, &gResolution_rect[gResolutionOptions]);
+		else
+			SDL_RenderCopy(r, gtResolution[gResolutionOptions], NULL, &gResolution_rect[gResolutionOptions]);
 		//draw back button
 		if (gOptionsMenuOptions == BACK_OPTIONS)
 			SDL_RenderCopy(r, gtBackSel, NULL, &gBack_rect);
@@ -820,6 +919,13 @@ void drawShell(SDL_Renderer *r)
 			tempbox.x = gFPSOnOff_rect.x - tempbox.w - 10;
 			DrawBox(r, &tempbox, WHITE);
 			tempbox.x = gFPSOnOff_rect.x + gFPSOnOff_rect.w + 10;
+			DrawBox(r, &tempbox, WHITE);
+			break;
+		case RESOLUTION:
+			tempbox.y = gResolution_rect[gResolutionOptions].y + gResolution_rect[gResolutionOptions].h / 2 - tempbox.h / 2 + 1;
+			tempbox.x = gResolution_rect[gResolutionOptions].x - tempbox.w - 10;
+			DrawBox(r, &tempbox, WHITE);
+			tempbox.x = gResolution_rect[gResolutionOptions].x + gResolution_rect[gResolutionOptions].w + 10;
 			DrawBox(r, &tempbox, WHITE);
 			break;
 		case BACK_OPTIONS:
@@ -952,13 +1058,16 @@ void openSaveData(void)
 	}
 	else
 	{
-
+#ifdef _DEBUG_BUILD_
 		printf("Save data loaded.\n");
+#endif
 
 		master = -1; music = -1; sound = -1;
 		fscanf(datafile, "%d, %d, %d", &master, &music, &sound);
 		fgets(buffer, 25, datafile); //grab the newline char to clean up 
+#ifdef _DEBUG_BUILD_
 		printf("Found: %d, %d, %d\n", master, music, sound);
+#endif
 		if (master > MAX_VOLUME || master < 0 ||
 			music > MAX_VOLUME || music < 0 ||
 			sound > MAX_VOLUME || sound < 0)
@@ -988,7 +1097,9 @@ void openSaveData(void)
 					success = false;
 					break;
 				}
+#ifdef _DEBUG_BUILD_
 				printf("%d: Name: %s, Level: %d, Time: %d\n", i + 1, name, level, time);
+#endif
 				strcpy(gHighScores[i].Name, name);
 				gHighScores[i].level = level;
 				gHighScores[i].time = time;

@@ -37,14 +37,9 @@ extern TTF_Font *gSmallFont, *gLargeFont, *gMenuFont, *gMenuFontSmall; //extern 
 extern bool gDrawFPS; 
 extern bool gUpdateResolution;
 
-
-void loadShellResources(SDL_Renderer *r)
+void initalizeShellPointers(void)
 {
-	int i, w, h; 
-	char buffer[100];
-	SDL_Color Select_Color = { 0, 255, 255 };
-	int optionsLeftOffset = 0;
-
+	int i;
 	gMenuMusic = NULL;
 	gClickSound = NULL;
 	gtTitle = NULL;
@@ -63,8 +58,8 @@ void loadShellResources(SDL_Renderer *r)
 	gtOptions = NULL;
 
 	gtMasterVolume = NULL;
-	gtMusicVolume = NULL; 
-	gtSoundVolume = NULL; 
+	gtMusicVolume = NULL;
+	gtSoundVolume = NULL;
 	gtFPSOnOff = NULL;
 
 	gtNameTitle = NULL;
@@ -73,7 +68,7 @@ void loadShellResources(SDL_Renderer *r)
 	for (i = 0; i < 10; i++)
 	{
 		gtRanking[i] = NULL;
-		gtHSPlayerNames[i] = NULL; 
+		gtHSPlayerNames[i] = NULL;
 		gtHSLevels[i] = NULL;
 		gtHSTimes[i] = NULL;
 	}
@@ -83,7 +78,12 @@ void loadShellResources(SDL_Renderer *r)
 		gtResolution[i] = NULL;
 		gtResolutionSel[i] = NULL;
 	}
-		
+}
+
+void loadShellResources(SDL_Renderer *r)
+{
+	int i;	
+	int optionsLeftOffset = 0;	
 
 	gMasterVolume = MAX_VOLUME;
 	gSoundVolume = MAX_VOLUME;
@@ -92,60 +92,25 @@ void loadShellResources(SDL_Renderer *r)
 	gHSRank = 0;
 	gnumNameInput = 0;
 	strcpy(gNameInput, "");
-
-	gtTitle = makeTextTexture(r, gLargeFont, GAME_NAME, TEXT_COLOR, BG_COLOR, BLENDED);
-	SDL_QueryTexture(gtTitle, NULL, NULL, &w, &h);
-	gTitle_rect.w = w;
-	gTitle_rect.h = h;
-	gTitle_rect.x = (SCREEN_WIDTH - w) / 2;
-	gTitle_rect.y = (SCREEN_HEIGHT/2 - h) / 2;
-
-	gtMenuOptions[0] = makeTextTexture(r, gMenuFont, "Start Game", TEXT_COLOR, BG_COLOR, BLENDED);
-	gtMenuOptions[1] = makeTextTexture(r, gMenuFont, "How to Play", TEXT_COLOR, BG_COLOR, BLENDED);
-	gtMenuOptions[2] = makeTextTexture(r, gMenuFont, "High Scores", TEXT_COLOR, BG_COLOR, BLENDED);
-	gtMenuOptions[3] = makeTextTexture(r, gMenuFont, "Options", TEXT_COLOR, BG_COLOR, BLENDED);
-	gtMenuOptions[4] = makeTextTexture(r, gMenuFont, "Exit", TEXT_COLOR, BG_COLOR, BLENDED);
-
-	gtMenuOptionsSel[0] = makeTextTexture(r, gMenuFont, "Start Game", Select_Color, BG_COLOR, BLENDED);
-	gtMenuOptionsSel[1] = makeTextTexture(r, gMenuFont, "How to Play", Select_Color, BG_COLOR, BLENDED);
-	gtMenuOptionsSel[2] = makeTextTexture(r, gMenuFont, "High Scores", Select_Color, BG_COLOR, BLENDED);
-	gtMenuOptionsSel[3] = makeTextTexture(r, gMenuFont, "Options", Select_Color, BG_COLOR, BLENDED);
-	gtMenuOptionsSel[4] = makeTextTexture(r, gMenuFont, "Exit", Select_Color, BG_COLOR, BLENDED);
-
+	
+	gTitle_rect.x = (SCREEN_WIDTH - gTitle_rect.w) / 2;
+	gTitle_rect.y = (SCREEN_HEIGHT / 2 - gTitle_rect.h) / 2;
 	for (i = 0; i < numMenuOptions; i++)
 	{
-		SDL_QueryTexture(gtMenuOptions[i], NULL, NULL, &w, &h);
-		gMenuOptions_rect[i].w = w;
-		gMenuOptions_rect[i].h = h;
-		gMenuOptions_rect[i].x = (SCREEN_WIDTH - w) / 2;
+		gMenuOptions_rect[i].x = (SCREEN_WIDTH - gMenuOptions_rect[i].w) / 2;
 		if (i == 0)
 			gMenuOptions_rect[i].y = SCREEN_HEIGHT / 2;
 		else
 			gMenuOptions_rect[i].y = gMenuOptions_rect[i - 1].y + gMenuOptions_rect[i - 1].h + 4;
 	}
 
-	sprintf_s(buffer, sizeof(buffer), "Version %d.%03d", BUILD_NUMBER / 1000 ,BUILD_NUMBER % 1000);	
-	gtVersionText[0] = makeTextTexture(r, gMenuFontSmall, buffer, TEXT_COLOR, BG_COLOR, BLENDED);	
-	gtVersionText[1] = makeTextTexture(r, gMenuFontSmall,
-		"Game Music Copyright 2017 by Brian Hicks", TEXT_COLOR, BG_COLOR, BLENDED);
-	gtVersionText[2] = makeTextTexture(r, gMenuFontSmall, 
-		"Game Code Copyright 2017-2020 under GNU GPLv3 by Matthew K. Daddysman", TEXT_COLOR, BG_COLOR, BLENDED);
 	for (i = 0; i < 3; i++)
-	{
-		SDL_QueryTexture(gtVersionText[i], NULL, NULL, &w, &h);
-		gVersion_rect[i].w = w;
-		gVersion_rect[i].h = h;
-		gVersion_rect[i].x = (SCREEN_WIDTH - w) / 2;
-	}
+		gVersion_rect[i].x = (SCREEN_WIDTH - gVersion_rect[i].w) / 2;
+	
 	gVersion_rect[2].y = SCREEN_HEIGHT - gVersion_rect[2].h - 4;
 	gVersion_rect[1].y = gVersion_rect[2].y - gVersion_rect[1].h + 2;
 	gVersion_rect[0].y = gVersion_rect[1].y - gVersion_rect[0].h + 4;
-	
-	gtBack = makeTextTexture(r, gMenuFont, "BACK", TEXT_COLOR, BG_COLOR, BLENDED);
-	gtBackSel = makeTextTexture(r, gMenuFont, "BACK", Select_Color, BG_COLOR, BLENDED);
-	SDL_QueryTexture(gtBack, NULL, NULL, &w, &h);
-	gBack_rect.w = w;
-	gBack_rect.h = h;
+		
 	gBack_rect.y = SCREEN_HEIGHT - gBack_rect.h - 10;
 	gBack_rect.x = SCREEN_WIDTH / 2 - gBack_rect.w / 2; 
 
@@ -173,144 +138,78 @@ void loadShellResources(SDL_Renderer *r)
 	resetHighScores(); //initalize high scores
 	//end main and general menu resources
 
-	//load the save values and set
-	openSaveData();
-	updateVolumes();
+	
 	//end load save values
 
 	//load option menu resources
-	gtOptions = makeTextTexture(r, gLargeFont, "Options", TEXT_COLOR, BG_COLOR, BLENDED);
-	SDL_QueryTexture(gtOptions, NULL, NULL, &w, &h);
-	gOptions_rect.x = SCREEN_WIDTH / 2 - w / 2;
+	
+	gOptions_rect.x = SCREEN_WIDTH / 2 - gOptions_rect.w / 2;
 	gOptions_rect.y = 10;
-	gOptions_rect.w = w;
-	gOptions_rect.h = h;
+
 
 	optionsLeftOffset = 25;
-	sprintf_s(buffer, sizeof(buffer), "Master Volume: %d", gMasterVolume);
-	gtMasterVolume = makeTextTexture(r, gMenuFont, buffer, TEXT_COLOR, BG_COLOR, BLENDED);
-	SDL_QueryTexture(gtMasterVolume, NULL, NULL, &w, &h);
+	
 	gMasterVolume_rect.x = optionsLeftOffset;
 	gMasterVolume_rect.y = gOptions_rect.y + gOptions_rect.h + 50;
-	gMasterVolume_rect.w = w;
-	gMasterVolume_rect.h = h;
-
-	sprintf_s(buffer, sizeof(buffer), "Music Volume: %d", gMusicVolume);
-	gtMusicVolume = makeTextTexture(r, gMenuFont, buffer, TEXT_COLOR, BG_COLOR, BLENDED);
-	SDL_QueryTexture(gtMusicVolume, NULL, NULL, &w, &h);
+	
 	gMusicVolume_rect.x = optionsLeftOffset + 25;
 	gMusicVolume_rect.y = gMasterVolume_rect.y + gMasterVolume_rect.h + 2;
-	gMusicVolume_rect.w = w;
-	gMusicVolume_rect.h = h;
-
-	sprintf_s(buffer, sizeof(buffer), "Sound Volume: %d", gSoundVolume);
-	gtSoundVolume = makeTextTexture(r, gMenuFont, buffer, TEXT_COLOR, BG_COLOR, BLENDED);
-	SDL_QueryTexture(gtSoundVolume, NULL, NULL, &w, &h);
+	
 	gSoundVolume_rect.x = optionsLeftOffset + 25;
 	gSoundVolume_rect.y = gMusicVolume_rect.y + gMusicVolume_rect.h + 2;
-	gSoundVolume_rect.w = w;
-	gSoundVolume_rect.h = h;
-
-	if (gDrawFPS)
-		sprintf_s(buffer, sizeof(buffer), "Display Frames per Second (FPS): On");
-	else
-		sprintf_s(buffer, sizeof(buffer), "Display Frames per Second (FPS): Off");
-	gtFPSOnOff = makeTextTexture(r, gMenuFont, buffer, TEXT_COLOR, BG_COLOR, BLENDED);
-	SDL_QueryTexture(gtFPSOnOff, NULL, NULL, &w, &h);
+	
 	gFPSOnOff_rect.x = optionsLeftOffset;
 	gFPSOnOff_rect.y = gSoundVolume_rect.y + gSoundVolume_rect.h + 25;
-	gFPSOnOff_rect.w = w;
-	gFPSOnOff_rect.h = h;
 
-	gtResolution[0] = makeTextTexture(r, gMenuFont, "Resolution: 800 x 600", TEXT_COLOR, BG_COLOR, BLENDED);
-	gtResolutionSel[0] = makeTextTexture(r, gMenuFont, "Resolution: 800 x 600", Select_Color, BG_COLOR, BLENDED);
-	SDL_QueryTexture(gtResolution[0], NULL, NULL, &w, &h);
 	gResolution_rect[0].x = optionsLeftOffset;
 	gResolution_rect[0].y = gFPSOnOff_rect.y + gFPSOnOff_rect.h + 25;
-	gResolution_rect[0].w = w;
-	gResolution_rect[0].h = h;
-
-	gtResolution[1] = makeTextTexture(r, gMenuFont, "Resolution: 1024 x 768", TEXT_COLOR, BG_COLOR, BLENDED);
-	gtResolutionSel[1] = makeTextTexture(r, gMenuFont, "Resolution: 1024 x 768", Select_Color, BG_COLOR, BLENDED);
-	SDL_QueryTexture(gtResolution[1], NULL, NULL, &w, &h);
+	
 	gResolution_rect[1].x = optionsLeftOffset;
 	gResolution_rect[1].y = gFPSOnOff_rect.y + gFPSOnOff_rect.h + 25;
-	gResolution_rect[1].w = w;
-	gResolution_rect[1].h = h;
 
-	gtResolution[2] = makeTextTexture(r, gMenuFont, "Resolution: 1280 x 960", TEXT_COLOR, BG_COLOR, BLENDED);
-	gtResolutionSel[2] = makeTextTexture(r, gMenuFont, "Resolution: 1280 x 960", Select_Color, BG_COLOR, BLENDED);
-	SDL_QueryTexture(gtResolution[2], NULL, NULL, &w, &h);
 	gResolution_rect[2].x = optionsLeftOffset;
 	gResolution_rect[2].y = gFPSOnOff_rect.y + gFPSOnOff_rect.h + 25;
-	gResolution_rect[2].w = w;
-	gResolution_rect[2].h = h;
 	//end option menu
 
 	//load how to play menu resources
-	gtHowToPlay = makeTextTexture(r, gLargeFont, "How to Play", TEXT_COLOR, BG_COLOR, BLENDED);
-	SDL_QueryTexture(gtHowToPlay, NULL, NULL, &w, &h);
-	gHowToPlay_rect.x = SCREEN_WIDTH / 2 - w / 2;
+	gHowToPlay_rect.x = SCREEN_WIDTH / 2 - gHowToPlay_rect.w / 2;
 	gHowToPlay_rect.y = 10;
-	gHowToPlay_rect.w = w;
-	gHowToPlay_rect.h = h;
-
 	gHowToPlayFrame = 0;
 	//end how to play menu
 
 	//load high scores menu resources
-	gtHighScores = makeTextTexture(r, gLargeFont, "High Scores", TEXT_COLOR, BG_COLOR, BLENDED);
-	SDL_QueryTexture(gtHighScores, NULL, NULL, &w, &h);
-	gHighScores_rect.x = SCREEN_WIDTH / 2 - w / 2;
+	gHighScores_rect.x = SCREEN_WIDTH / 2 - gHighScores_rect.w / 2;
 	gHighScores_rect.y = 10;
-	gHighScores_rect.w = w;
-	gHighScores_rect.h = h;
 
-	gtNameTitle = makeTextTexture(r, gMenuFont, "Player", TEXT_COLOR, BG_COLOR, BLENDED);
-	SDL_QueryTexture(gtNameTitle, NULL, NULL, &w, &h);
 	gNameTitle_rect.x = 75;
 	gNameTitle_rect.y = gHighScores_rect.y + gHighScores_rect.h + 5;
-	gNameTitle_rect.w = w;
-	gNameTitle_rect.h = h;
-
-	gtLevelTitle = makeTextTexture(r, gMenuFont, "Level", TEXT_COLOR, BG_COLOR, BLENDED);
-	SDL_QueryTexture(gtLevelTitle, NULL, NULL, &w, &h);
+	
 	gLevelTitle_rect.x = gNameTitle_rect.x + 6 * gNameTitle_rect.w;
 	gLevelTitle_rect.y = gNameTitle_rect.y;
-	gLevelTitle_rect.w = w;
-	gLevelTitle_rect.h = h;
 
-	gtTimeTitle = makeTextTexture(r, gMenuFont, "Time", TEXT_COLOR, BG_COLOR, BLENDED);
-	SDL_QueryTexture(gtTimeTitle, NULL, NULL, &w, &h);
-	gTimeTitle_rect.x = SCREEN_WIDTH - w - 10;
+	gTimeTitle_rect.x = SCREEN_WIDTH - gTimeTitle_rect.w - 10;
 	gTimeTitle_rect.y = gNameTitle_rect.y;
-	gTimeTitle_rect.w = w;
-	gTimeTitle_rect.h = h;
-
-	gtRanking[0] = makeTextTexture(r, gMenuFont, "1", TEXT_COLOR, BG_COLOR, BLENDED);
-	SDL_QueryTexture(gtRanking[0], NULL, NULL, &w, &h);
+	
 	gRanking_rect[0].x = 25;
 	gRanking_rect[0].y = gNameTitle_rect.y + gNameTitle_rect.h + 5;
-	gRanking_rect[0].w = w;
-	gRanking_rect[0].h = h;
 
 	for (i = 1; i < 10; i++)
-	{
-		sprintf_s(buffer, sizeof(buffer), "%d", i + 1);
-		gtRanking[i] = makeTextTexture(r, gMenuFont, buffer, TEXT_COLOR, BG_COLOR, BLENDED);
-		SDL_QueryTexture(gtRanking[i], NULL, NULL, &w, &h);
+	{		
 		gRanking_rect[i].x = gRanking_rect[0].x;
 		gRanking_rect[i].y = gRanking_rect[i - 1].y + gRanking_rect[i - 1].h - 8;
-		gRanking_rect[i].w = w;
-		gRanking_rect[i].h = h;
 	}
 	//end high scores menu
-
 
 	//set default menu options
 	gMenuOptions = STARTGAME;
 	gCurrentMenu = MAIN_MENU;
 	gResolutionOptions = r800x600;
+	SDL_StopTextInput();
+	//load the save values and set
+	openSaveData();
+	updateVolumes();
+	if (gResolutionOptions != r800x600) //resolution changed
+		gUpdateResolution = true;
 }
 
 void freeShellResources(void)
@@ -403,7 +302,7 @@ void freeShellResources(void)
 
 void openHighScoresScreen(SDL_Renderer *r)
 {
-	int i, w, h, m, s;
+	int i, m, s;
 	char buffer[10];
 	//first clean up the old textures - if they exist 
 	for (i = 0; i < 10; i++)
@@ -426,32 +325,24 @@ void openHighScoresScreen(SDL_Renderer *r)
 		else
 		{
 			if (gCurrentMenu == ENTERNAME_MENU && i == gHSRank)
-				gtHSPlayerNames[i] = makeTextTexture(r, gMenuFont, "_", TEXT_COLOR, BG_COLOR, BLENDED);
+				gtHSPlayerNames[i] = makeTextTexture(r, MENU_LARGE, "_", TEXT_COLOR, BG_COLOR, BLENDED, &gHSPlayerNames_rect[i]);
 			else
-				gtHSPlayerNames[i] = makeTextTexture(r, gMenuFont, gHighScores[i].Name, TEXT_COLOR, BG_COLOR, BLENDED);
-			SDL_QueryTexture(gtHSPlayerNames[i], NULL, NULL, &w, &h);
+				gtHSPlayerNames[i] = makeTextTexture(r, MENU_LARGE, gHighScores[i].Name, TEXT_COLOR, BG_COLOR, BLENDED, &gHSPlayerNames_rect[i]);
 			gHSPlayerNames_rect[i].x = gNameTitle_rect.x;
 			gHSPlayerNames_rect[i].y = gRanking_rect[i].y;
-			gHSPlayerNames_rect[i].w = w;
-			gHSPlayerNames_rect[i].h = h;
 
 			sprintf_s(buffer, sizeof(buffer), "%d", gHighScores[i].level);
-			gtHSLevels[i] = makeTextTexture(r, gMenuFont, buffer, TEXT_COLOR, BG_COLOR, BLENDED);
-			SDL_QueryTexture(gtHSLevels[i], NULL, NULL, &w, &h);
-			gHSLevels_rect[i].x = gLevelTitle_rect.x + gLevelTitle_rect.w - w;
+			gtHSLevels[i] = makeTextTexture(r, MENU_LARGE, buffer, TEXT_COLOR, BG_COLOR, BLENDED, &gHSLevels_rect[i]);
+			gHSLevels_rect[i].x = gLevelTitle_rect.x + gLevelTitle_rect.w - gHSLevels_rect[i].w;
 			gHSLevels_rect[i].y = gRanking_rect[i].y;
-			gHSLevels_rect[i].w = w;
-			gHSLevels_rect[i].h = h;
 
 			m = gHighScores[i].time / 60;
 			s = gHighScores[i].time - m * 60;
 			sprintf_s(buffer, sizeof(buffer), "%02d:%02d", m, s);
-			gtHSTimes[i] = makeTextTexture(r, gMenuFont, buffer, TEXT_COLOR, BG_COLOR, BLENDED);
-			SDL_QueryTexture(gtHSTimes[i], NULL, NULL, &w, &h);
-			gHSTimes_rect[i].x = gTimeTitle_rect.x + gTimeTitle_rect.w - w;
+			gtHSTimes[i] = makeTextTexture(r, MENU_LARGE, buffer, TEXT_COLOR, BG_COLOR, BLENDED, &gHSTimes_rect[i]);
+			
+			gHSTimes_rect[i].x = gTimeTitle_rect.x + gTimeTitle_rect.w - gHSTimes_rect[i].w;
 			gHSTimes_rect[i].y = gRanking_rect[i].y;
-			gHSTimes_rect[i].w = w;
-			gHSTimes_rect[i].h = h;
 		}
 
 	}
@@ -460,7 +351,6 @@ void openHighScoresScreen(SDL_Renderer *r)
 bool shellKeyboard(SDL_Event *e, SDL_Renderer *r)
 {
 	char nbuffer[MAX_NAME+20];
-	int w, h;
 	bool quit = false;
 	switch (gCurrentMenu)
 	{
@@ -651,10 +541,7 @@ bool shellKeyboard(SDL_Event *e, SDL_Renderer *r)
 			if (gtHSPlayerNames[gHSRank] != NULL)
 				SDL_DestroyTexture(gtHSPlayerNames[gHSRank]);
 			sprintf_s(nbuffer, sizeof(nbuffer), "%s_", gNameInput);
-			gtHSPlayerNames[gHSRank] = makeTextTexture(r, gMenuFont, nbuffer, TEXT_COLOR, BG_COLOR, BLENDED);
-			SDL_QueryTexture(gtHSPlayerNames[gHSRank], NULL, NULL, &w, &h);
-			gHSPlayerNames_rect[gHSRank].w = w;
-			gHSPlayerNames_rect[gHSRank].h = h;
+			gtHSPlayerNames[gHSRank] = makeTextTexture(r, MENU_LARGE, nbuffer, TEXT_COLOR, BG_COLOR, BLENDED, &gHSPlayerNames_rect[gHSRank]);
 		}
 		break;
 	default:
@@ -667,7 +554,7 @@ bool shellKeyboard(SDL_Event *e, SDL_Renderer *r)
 void acceptNameInput(SDL_Event *e, SDL_Renderer *r)
 {
 	char nbuffer[MAX_NAME+20];
-	int w, h;
+	//int w, h;
 
 	if (gnumNameInput < MAX_NAME)
 	{
@@ -685,21 +572,18 @@ void acceptNameInput(SDL_Event *e, SDL_Renderer *r)
 		if (gnumNameInput < MAX_NAME)
 		{
 			sprintf_s(nbuffer, sizeof(nbuffer), "%s_", gNameInput);
-			gtHSPlayerNames[gHSRank] = makeTextTexture(r, gMenuFont, nbuffer, TEXT_COLOR, BG_COLOR, BLENDED);
+			gtHSPlayerNames[gHSRank] = makeTextTexture(r, MENU_LARGE, nbuffer, TEXT_COLOR, BG_COLOR, BLENDED, &gHSPlayerNames_rect[gHSRank]);
 		}
 		else
 		{
-			gtHSPlayerNames[gHSRank] = makeTextTexture(r, gMenuFont, gNameInput, TEXT_COLOR, BG_COLOR, BLENDED);
+			gtHSPlayerNames[gHSRank] = makeTextTexture(r, MENU_LARGE, gNameInput, TEXT_COLOR, BG_COLOR, BLENDED, &gHSPlayerNames_rect[gHSRank]);
 		}
-		SDL_QueryTexture(gtHSPlayerNames[gHSRank], NULL, NULL, &w, &h);
-		gHSPlayerNames_rect[gHSRank].w = w;
-		gHSPlayerNames_rect[gHSRank].h = h;
 	}
 }
 
 void shellLogic(SDL_Renderer *r)
 {
-	int i, w, h;
+	int i;
 	char buffer[100];
 	SDL_Color Select_Color = { 0, 255, 255 };
 
@@ -713,34 +597,25 @@ void shellLogic(SDL_Renderer *r)
 			SDL_DestroyTexture(gtMasterVolume);
 		sprintf_s(buffer, sizeof(buffer), "Master Volume: %d", gMasterVolume);
 		if (gOptionsMenuOptions == MASTERVOLUME)
-			gtMasterVolume = makeTextTexture(r, gMenuFont, buffer, Select_Color, BG_COLOR, BLENDED);
+			gtMasterVolume = makeTextTexture(r, MENU_LARGE, buffer, Select_Color, BG_COLOR, BLENDED, &gMasterVolume_rect);
 		else
-			gtMasterVolume = makeTextTexture(r, gMenuFont, buffer, TEXT_COLOR, BG_COLOR, BLENDED);
-		SDL_QueryTexture(gtMasterVolume, NULL, NULL, &w, &h);
-		gMasterVolume_rect.w = w;
-		gMasterVolume_rect.h = h;
-
+			gtMasterVolume = makeTextTexture(r, MENU_LARGE, buffer, TEXT_COLOR, BG_COLOR, BLENDED, &gMasterVolume_rect);
+	
 		if (gtMusicVolume != NULL)
 			SDL_DestroyTexture(gtMusicVolume);
 		sprintf_s(buffer, sizeof(buffer), "Music Volume: %d", gMusicVolume);
 		if (gOptionsMenuOptions == MUSICVOLUME)
-			gtMusicVolume = makeTextTexture(r, gMenuFont, buffer, Select_Color, BG_COLOR, BLENDED);
+			gtMusicVolume = makeTextTexture(r, MENU_LARGE, buffer, Select_Color, BG_COLOR, BLENDED, &gMusicVolume_rect);
 		else
-			gtMusicVolume = makeTextTexture(r, gMenuFont, buffer, TEXT_COLOR, BG_COLOR, BLENDED);
-		SDL_QueryTexture(gtMusicVolume, NULL, NULL, &w, &h);
-		gMusicVolume_rect.w = w;
-		gMusicVolume_rect.h = h;
+			gtMusicVolume = makeTextTexture(r, MENU_LARGE, buffer, TEXT_COLOR, BG_COLOR, BLENDED, &gMusicVolume_rect);
 
 		if (gtSoundVolume != NULL)
 			SDL_DestroyTexture(gtSoundVolume);
 		sprintf_s(buffer, sizeof(buffer), "Sound Volume: %d", gSoundVolume);
 		if (gOptionsMenuOptions == SOUNDVOLUME)
-			gtSoundVolume = makeTextTexture(r, gMenuFont, buffer, Select_Color, BG_COLOR, BLENDED);
+			gtSoundVolume = makeTextTexture(r, MENU_LARGE, buffer, Select_Color, BG_COLOR, BLENDED, &gSoundVolume_rect);
 		else
-			gtSoundVolume = makeTextTexture(r, gMenuFont, buffer, TEXT_COLOR, BG_COLOR, BLENDED);
-		SDL_QueryTexture(gtSoundVolume, NULL, NULL, &w, &h);
-		gSoundVolume_rect.w = w;
-		gSoundVolume_rect.h = h;
+			gtSoundVolume = makeTextTexture(r, MENU_LARGE, buffer, TEXT_COLOR, BG_COLOR, BLENDED, &gSoundVolume_rect);
 
 		if (gDrawFPS)
 			sprintf_s(buffer, sizeof(buffer), "Display Frames per Second (FPS): On");
@@ -750,19 +625,16 @@ void shellLogic(SDL_Renderer *r)
 		if (gtFPSOnOff != NULL)
 			SDL_DestroyTexture(gtFPSOnOff);
 		if (gOptionsMenuOptions == FPSONOFF)
-			gtFPSOnOff = makeTextTexture(r, gMenuFont, buffer, Select_Color, BG_COLOR, BLENDED);
+			gtFPSOnOff = makeTextTexture(r, MENU_LARGE, buffer, Select_Color, BG_COLOR, BLENDED, &gFPSOnOff_rect);
 		else
-			gtFPSOnOff = makeTextTexture(r, gMenuFont, buffer, TEXT_COLOR, BG_COLOR, BLENDED);
-		SDL_QueryTexture(gtFPSOnOff, NULL, NULL, &w, &h);
-		gFPSOnOff_rect.w = w;
-		gFPSOnOff_rect.h = h;
+			gtFPSOnOff = makeTextTexture(r, MENU_LARGE, buffer, TEXT_COLOR, BG_COLOR, BLENDED, &gFPSOnOff_rect);
 	}
 	
 }
 
 void drawShell(SDL_Renderer *r)
 {
-	int i, startx, starty, x, y, temp;
+	int i, startx, starty, x, y;
 	SDL_Rect tempbox;
 
 	if (Mix_PlayingMusic() == 0)
@@ -1041,7 +913,7 @@ void openSaveData(void)
 {
 	int i;
 	FILE *datafile;
-	int master, music, sound;
+	int master, music, sound, resolution;
 	char name[MAX_NAME+1], buffer[25];
 	int level, namelen;
 	unsigned long int time;
@@ -1063,14 +935,15 @@ void openSaveData(void)
 #endif
 
 		master = -1; music = -1; sound = -1;
-		fscanf(datafile, "%d, %d, %d", &master, &music, &sound);
+		fscanf(datafile, "%d, %d, %d, %d", &master, &music, &sound, &resolution);
 		fgets(buffer, 25, datafile); //grab the newline char to clean up 
 #ifdef _DEBUG_BUILD_
-		printf("Found: %d, %d, %d\n", master, music, sound);
+		printf("Found: %d, %d, %d, %d\n", master, music, sound, resolution);
 #endif
 		if (master > MAX_VOLUME || master < 0 ||
 			music > MAX_VOLUME || music < 0 ||
-			sound > MAX_VOLUME || sound < 0)
+			sound > MAX_VOLUME || sound < 0 ||
+			resolution >= MAX_RESOLUTIONS || resolution < 0)
 		{
 
 			printf("Save data corrupt. Making new file.\n");
@@ -1111,6 +984,7 @@ void openSaveData(void)
 			gMasterVolume = master;
 			gMusicVolume = music;
 			gSoundVolume = sound;
+			gResolutionOptions = resolution;
 		}
 	}
 
@@ -1121,6 +995,7 @@ void openSaveData(void)
 void writeGameDataFile(void)
 {
 	int i;
+	int resolution = (int)gResolutionOptions;
 	FILE *datafile;
 
 	datafile = fopen(SAVE_DATA, "w");
@@ -1128,7 +1003,7 @@ void writeGameDataFile(void)
 		printf("Cannot write to data file: %s\n", SAVE_DATA);
 	else
 	{
-		fprintf(datafile, "%d, %d, %d\n", gMasterVolume, gMusicVolume, gSoundVolume);
+		fprintf(datafile, "%d, %d, %d, %d\n", gMasterVolume, gMusicVolume, gSoundVolume, resolution);
 
 		for (i = 0; i < 10; i++)
 		{
@@ -1151,5 +1026,126 @@ void resetHighScores(void)
 		gHighScores[i].level = 0;
 		gHighScores[i].time = 0;
 	}
+}
+
+bool loadTextResources(SDL_Renderer *r)
+{
+	SDL_Color Select_Color = { 0, 255, 255 };
+	int i;
+	char buffer[100];
+
+	if (gtTitle != NULL)
+		SDL_DestroyTexture(gtTitle);
+	gtTitle = makeTextTexture(r, STANDARD_LARGE, GAME_NAME, TEXT_COLOR, BG_COLOR, BLENDED, &gTitle_rect);
+
+	for (i = 0; i < 5; i++)
+	{
+		if (gtMenuOptions[i] != NULL)
+			SDL_DestroyTexture(gtMenuOptions[i]);
+		if (gtMenuOptionsSel[i] != NULL)
+			SDL_DestroyTexture(gtMenuOptionsSel[i]);
+	}
+	gtMenuOptions[0] = makeTextTexture(r, MENU_LARGE, "Start Game", TEXT_COLOR, BG_COLOR, BLENDED, &gMenuOptions_rect[0]);
+	gtMenuOptions[1] = makeTextTexture(r, MENU_LARGE, "How to Play", TEXT_COLOR, BG_COLOR, BLENDED, &gMenuOptions_rect[1]);
+	gtMenuOptions[2] = makeTextTexture(r, MENU_LARGE, "High Scores", TEXT_COLOR, BG_COLOR, BLENDED, &gMenuOptions_rect[2]);
+	gtMenuOptions[3] = makeTextTexture(r, MENU_LARGE, "Options", TEXT_COLOR, BG_COLOR, BLENDED, &gMenuOptions_rect[3]);
+	gtMenuOptions[4] = makeTextTexture(r, MENU_LARGE, "Exit", TEXT_COLOR, BG_COLOR, BLENDED, &gMenuOptions_rect[4]);
+
+	gtMenuOptionsSel[0] = makeTextTexture(r, MENU_LARGE, "Start Game", Select_Color, BG_COLOR, BLENDED, &gMenuOptions_rect[0]);
+	gtMenuOptionsSel[1] = makeTextTexture(r, MENU_LARGE, "How to Play", Select_Color, BG_COLOR, BLENDED, &gMenuOptions_rect[1]);
+	gtMenuOptionsSel[2] = makeTextTexture(r, MENU_LARGE, "High Scores", Select_Color, BG_COLOR, BLENDED, &gMenuOptions_rect[2]);
+	gtMenuOptionsSel[3] = makeTextTexture(r, MENU_LARGE, "Options", Select_Color, BG_COLOR, BLENDED, &gMenuOptions_rect[3]);
+	gtMenuOptionsSel[4] = makeTextTexture(r, MENU_LARGE, "Exit", Select_Color, BG_COLOR, BLENDED, &gMenuOptions_rect[4]);
+
+	for (i = 0; i < 3; i++)
+	{
+		if (gtVersionText[i] != NULL)
+			SDL_DestroyTexture(gtVersionText[i]);
+	}
+
+	sprintf_s(buffer, sizeof(buffer), "Version %d.%03d", BUILD_NUMBER / 1000, BUILD_NUMBER % 1000);
+	gtVersionText[0] = makeTextTexture(r, MENU_SMALL, buffer, TEXT_COLOR, BG_COLOR, BLENDED, &gVersion_rect[0]);
+	gtVersionText[1] = makeTextTexture(r, MENU_SMALL,
+		"Game Music Copyright 2017 by Brian Hicks", TEXT_COLOR, BG_COLOR, BLENDED, &gVersion_rect[1]);
+	gtVersionText[2] = makeTextTexture(r, MENU_SMALL,
+		"Game Code Copyright 2017-2020 under GNU GPLv3 by Matthew K. Daddysman", TEXT_COLOR, BG_COLOR, BLENDED, &gVersion_rect[2]);
+
+	if (gtBack != NULL)
+		SDL_DestroyTexture(gtBack);
+	if (gtBackSel != NULL)
+		SDL_DestroyTexture(gtBackSel);
+	gtBack = makeTextTexture(r, MENU_LARGE, "BACK", TEXT_COLOR, BG_COLOR, BLENDED, &gBack_rect);
+	gtBackSel = makeTextTexture(r, MENU_LARGE, "BACK", Select_Color, BG_COLOR, BLENDED, &gBack_rect);
+
+	if (gtOptions != NULL)
+		SDL_DestroyTexture(gtOptions);
+	gtOptions = makeTextTexture(r, STANDARD_LARGE, "Options", TEXT_COLOR, BG_COLOR, BLENDED, &gOptions_rect);
+	
+	if (gtMasterVolume != NULL)
+		SDL_DestroyTexture(gtMasterVolume);
+	sprintf_s(buffer, sizeof(buffer), "Master Volume: %d", gMasterVolume);
+	gtMasterVolume = makeTextTexture(r, MENU_LARGE, buffer, TEXT_COLOR, BG_COLOR, BLENDED, &gMasterVolume_rect);
+	
+	if (gtMusicVolume != NULL)
+		SDL_DestroyTexture(gtMusicVolume);
+	sprintf_s(buffer, sizeof(buffer), "Music Volume: %d", gMusicVolume);
+	gtMusicVolume = makeTextTexture(r, MENU_LARGE, buffer, TEXT_COLOR, BG_COLOR, BLENDED, &gMusicVolume_rect);
+	
+	if (gtSoundVolume != NULL)
+		SDL_DestroyTexture(gtSoundVolume);
+	sprintf_s(buffer, sizeof(buffer), "Sound Volume: %d", gSoundVolume);
+	gtSoundVolume = makeTextTexture(r, MENU_LARGE, buffer, TEXT_COLOR, BG_COLOR, BLENDED, &gSoundVolume_rect);
+	
+	if (gtFPSOnOff != NULL)
+		SDL_DestroyTexture(gtFPSOnOff);
+	if (gDrawFPS)
+		sprintf_s(buffer, sizeof(buffer), "Display Frames per Second (FPS): On");
+	else
+		sprintf_s(buffer, sizeof(buffer), "Display Frames per Second (FPS): Off");
+	gtFPSOnOff = makeTextTexture(r, MENU_LARGE, buffer, TEXT_COLOR, BG_COLOR, BLENDED, &gFPSOnOff_rect);
+
+	for (i = 0; i < 3; i++)
+	{
+		if (gtResolution[i] != NULL)
+			SDL_DestroyTexture(gtResolution[i]);
+		if (gtResolutionSel[i] != NULL)
+			SDL_DestroyTexture(gtResolutionSel[i]);
+	}
+	gtResolution[0] = makeTextTexture(r, MENU_LARGE, "Resolution: 800 x 600", TEXT_COLOR, BG_COLOR, BLENDED, &gResolution_rect[0]);
+	gtResolutionSel[0] = makeTextTexture(r, MENU_LARGE, "Resolution: 800 x 600", Select_Color, BG_COLOR, BLENDED, &gResolution_rect[0]);
+	gtResolution[1] = makeTextTexture(r, MENU_LARGE, "Resolution: 1024 x 768", TEXT_COLOR, BG_COLOR, BLENDED, &gResolution_rect[1]);
+	gtResolutionSel[1] = makeTextTexture(r, MENU_LARGE, "Resolution: 1024 x 768", Select_Color, BG_COLOR, BLENDED, &gResolution_rect[1]);
+	gtResolution[2] = makeTextTexture(r, MENU_LARGE, "Resolution: 1280 x 960", TEXT_COLOR, BG_COLOR, BLENDED, &gResolution_rect[2]);
+	gtResolutionSel[2] = makeTextTexture(r, MENU_LARGE, "Resolution: 1280 x 960", Select_Color, BG_COLOR, BLENDED, &gResolution_rect[2]);
+
+	if (gtHowToPlay != NULL)
+		SDL_DestroyTexture(gtHowToPlay);
+	gtHowToPlay = makeTextTexture(r, STANDARD_LARGE, "How to Play", TEXT_COLOR, BG_COLOR, BLENDED, &gHowToPlay_rect);
+	
+	if (gtHighScores != NULL)
+		SDL_DestroyTexture(gtHighScores);
+	gtHighScores = makeTextTexture(r, STANDARD_LARGE, "High Scores", TEXT_COLOR, BG_COLOR, BLENDED, &gHighScores_rect);
+	
+	if (gtNameTitle != NULL)
+		SDL_DestroyTexture(gtNameTitle);
+	gtNameTitle = makeTextTexture(r, MENU_LARGE, "Player", TEXT_COLOR, BG_COLOR, BLENDED, &gNameTitle_rect);
+	
+	if (gtLevelTitle != NULL)
+		SDL_DestroyTexture(gtLevelTitle);
+	gtLevelTitle = makeTextTexture(r, MENU_LARGE, "Level", TEXT_COLOR, BG_COLOR, BLENDED, &gLevelTitle_rect);
+	
+	if (gtTimeTitle != NULL)
+		SDL_DestroyTexture(gtTimeTitle);
+	gtTimeTitle = makeTextTexture(r, MENU_LARGE, "Time", TEXT_COLOR, BG_COLOR, BLENDED, &gTimeTitle_rect);
+	
+	for (i = 0; i < 10; i++)
+	{
+		if (gtRanking[i] != NULL)
+			SDL_DestroyTexture(gtRanking[i]);
+		sprintf_s(buffer, sizeof(buffer), "%d", i + 1);
+		gtRanking[i] = makeTextTexture(r, MENU_LARGE, buffer, TEXT_COLOR, BG_COLOR, BLENDED, &gRanking_rect[i]);
+	}
+
+	return loadGameTextResources(r);
 }
 

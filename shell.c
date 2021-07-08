@@ -33,7 +33,9 @@ SDL_Texture *gtHowToPlayText[NUM_HOW_TO_PLAY];
 SDL_Rect grHowToPlayText[NUM_HOW_TO_PLAY], gHowToKeyboard[NUM_HOW_TO_KEYS];
 SDL_Texture *gtHowToPlayKeyText[6][2];
 SDL_Rect grHowToPlayKeyText[NUM_HOW_TO_KEYS];
-SDL_Rect gDummyRect, gHowToBoostText, gHowToBoostMeter[2], gHowToDemoRects[5], gHowToVictory;
+SDL_Rect gDummyRect, gHowToBoostText, gHowToBoostMeter[2], gHowToDemoRects[5], gHowToVictory, gHowToPlayArea[2];
+SDL_Texture *gtHowToHitPoints[3];
+SDL_Rect grHowToHitPoints[3], grHowToGameOver;
 
 
 struct AIBox gMenuBoxes[NUM_MENU_BOXES];
@@ -44,8 +46,8 @@ struct HighScore gHighScores[10];
 //extern TTF_Font *gSmallFont, *gLargeFont, *gMenuFont, *gMenuFontSmall; //extern fonts
 extern bool gDrawFPS; 
 extern bool gUpdateResolution;
-extern SDL_Texture *gtBoost, *gtvictory;
-extern SDL_Rect gBoost_rect, gvictory_rect;
+extern SDL_Texture *gtBoost, *gtvictory, *gtgameover;
+extern SDL_Rect gBoost_rect, gvictory_rect, ggameover_rect;
 
 void initalizeShellPointers(void)
 {
@@ -95,6 +97,9 @@ void initalizeShellPointers(void)
 	for (i = 0; i < 6; i++)
 		for (j = 0; j < 2; j++)
 			gtHowToPlayKeyText[i][j] = NULL;
+
+	for (i = 0; i < 3; i++)
+		gtHowToHitPoints[i] = NULL;
 }
 
 void loadShellResources(SDL_Renderer *r)
@@ -294,18 +299,39 @@ void loadShellResources(SDL_Renderer *r)
 	gHowToDemoRects[2].x = gHowToBoostText.x;
 	gHowToDemoRects[2].y = midboxcenter + 15;
 
-	gHowToDemoRects[3].x = SCREEN_WIDTH / 4;
-	gHowToDemoRects[3].y = 500;
-
-	gHowToDemoRects[4].x = SCREEN_WIDTH / 4 * 3;
-	gHowToDemoRects[4].y = 500;	
-
 	gHowToVictory.w = SCREEN_WIDTH / 2 - 20;
 	gHowToVictory.y = grHowToPlayText[5].y + grHowToPlayText[5].h + 10;
 	gHowToVictory.h = 400 - 10 - gHowToVictory.y;
 	gHowToVictory.x = 10;
 	
-	
+	gHowToPlayArea[0].y = grHowToPlayText[4].y + grHowToPlayText[4].h + 5;
+	gHowToPlayArea[0].h = gBack_rect.y - 15 - gHowToPlayArea[0].y;
+	gHowToPlayArea[0].w = gHowToPlayArea[0].h / 3 * 4;
+	gHowToPlayArea[0].x = SCREEN_WIDTH / 2 - gHowToPlayArea[0].w / 2;
+
+	gHowToPlayArea[1].x = gHowToPlayArea[0].x + 3;
+	gHowToPlayArea[1].y = gHowToPlayArea[0].y + 3;
+	gHowToPlayArea[1].w = gHowToPlayArea[0].w - 6;
+	gHowToPlayArea[1].h = gHowToPlayArea[0].h - 6;
+
+	gHowToDemoRects[3].x = gHowToPlayArea[1].x + 3;
+	gHowToDemoRects[4].x = gHowToPlayArea[1].x + 1;
+	gHowToDemoRects[3].y = gHowToPlayArea[1].y + gHowToPlayArea[1].h - 10 - 30;
+	gHowToDemoRects[4].y = gHowToPlayArea[1].y + 17;
+
+	grHowToHitPoints[0].y = gHowToPlayArea[0].y + gHowToPlayArea[0].h / 2 - grHowToHitPoints[0].h / 2;
+	grHowToHitPoints[1].y = grHowToHitPoints[0].y;
+	grHowToHitPoints[2].y = grHowToHitPoints[0].y;
+
+	grHowToHitPoints[0].x = gHowToPlayArea[0].x - gHowToPlayArea[0].w - 7;
+	grHowToHitPoints[1].x = grHowToHitPoints[0].x;
+	grHowToHitPoints[2].x = grHowToHitPoints[0].x;
+
+	grHowToGameOver.h = gHowToPlayArea[0].h * 1/2;
+	float scale = (float)grHowToGameOver.h / (float)ggameover_rect.h * (float)ggameover_rect.w;
+	grHowToGameOver.w = (int)scale;
+	grHowToGameOver.x = SCREEN_WIDTH / 2 - grHowToGameOver.w / 2;
+	grHowToGameOver.y = gHowToPlayArea[0].y + (gHowToPlayArea[0].h - grHowToGameOver.h) / 2;
 
 	gHowToPlayFrame = 0;
 	//end how to play menu
@@ -440,6 +466,10 @@ void freeShellResources(void)
 		for (j = 0; j < 2; j++)
 			if (gtHowToPlayKeyText[i][j] != NULL)
 				SDL_DestroyTexture(gtHowToPlayKeyText[i][j]);
+
+	for (i = 0; i < 3; i++)
+		if(gtHowToHitPoints[i] != NULL)
+			SDL_DestroyTexture(gtHowToHitPoints[i]);
 }
 
 void openHighScoresScreen(SDL_Renderer *r)
@@ -556,6 +586,10 @@ bool shellKeyboard(SDL_Event *e, SDL_Renderer *r)
 			gHowToPlayFrame = 0;
 			gHowToDemoRects[2].x = gHowToBoostText.x;
 			gHowToBoostMeter[1].w = 138;
+			gHowToDemoRects[3].x = gHowToPlayArea[1].x + 3;
+			gHowToDemoRects[4].x = gHowToPlayArea[1].x + 1;
+			gHowToDemoRects[3].y = gHowToPlayArea[1].y + gHowToPlayArea[1].h - 10 - 30;
+			gHowToDemoRects[4].y = gHowToPlayArea[1].y + 17;
 		}
 		break;
 	case OPTIONS_MENU:
@@ -929,8 +963,50 @@ void drawShell(SDL_Renderer *r)
 		DrawBox(r, &gHowToDemoRects[2], WHITE);
 		
 		//enemy section
-		DrawBox(r, &gHowToDemoRects[3], WHITE);
-		DrawBox(r, &gHowToDemoRects[4], ORANGE);
+		if (gHowToPlayFrame < 180)
+		{
+			if (gHowToPlayFrame >= 62 && gHowToPlayFrame < 67)
+				DrawBox(r, &gHowToPlayArea[0], RED);
+			else
+				DrawBox(r, &gHowToPlayArea[0], WHITE);
+			DrawBox(r, &gHowToPlayArea[1], BLACK);
+		}
+		else
+			SDL_RenderCopy(r, gtgameover, NULL, &grHowToGameOver);
+
+		if (gHowToPlayFrame < 62)
+		{
+			gHowToDemoRects[3].x += gHowToPlayFrame % 2;
+			gHowToDemoRects[3].y += gHowToPlayFrame % 2;
+		}
+		else
+		{
+			gHowToDemoRects[3].x += gHowToPlayFrame % 2;
+			gHowToDemoRects[3].y -= gHowToPlayFrame % 2;
+		}
+		gHowToDemoRects[4].x += gHowToPlayFrame % 2;
+
+		if (gHowToPlayFrame < 180)
+		{
+			if (gHowToPlayFrame >= 62 && gHowToPlayFrame < 67)
+				DrawBox(r, &gHowToDemoRects[3], RED);
+			else if (gHowToPlayFrame >= 67 && gHowToPlayFrame < 120)
+			{
+				if (gHowToPlayFrame % 10 < 5)
+					DrawBox(r, &gHowToDemoRects[3], WHITE);
+			}
+			else
+				DrawBox(r, &gHowToDemoRects[3], WHITE);
+			DrawBox(r, &gHowToDemoRects[4], ORANGE);
+		}		
+
+		if (gHowToPlayFrame < 62)
+			SDL_RenderCopy(r, gtHowToHitPoints[0], NULL, &grHowToHitPoints[0]);
+		else if (gHowToPlayFrame < 180)
+			SDL_RenderCopy(r, gtHowToHitPoints[1], NULL, &grHowToHitPoints[1]);
+		else
+			SDL_RenderCopy(r, gtHowToHitPoints[2], NULL, &grHowToHitPoints[2]);
+		
 
 		//draw back button
 		tempbox.w = 10;
@@ -943,7 +1019,13 @@ void drawShell(SDL_Renderer *r)
 		SDL_RenderCopy(r, gtBackSel, NULL, &gBack_rect);
 		gHowToPlayFrame++; //increase the how to play frame counter
 		if (gHowToPlayFrame > 240)
-			gHowToPlayFrame = 0; //if 120 frames (0-119) have passed reset to zero
+		{
+			gHowToPlayFrame = 0; //if 240 frames (0-119) have passed reset to zero
+			gHowToDemoRects[3].x = gHowToPlayArea[1].x + 3;
+			gHowToDemoRects[4].x = gHowToPlayArea[1].x + 1;
+			gHowToDemoRects[3].y = gHowToPlayArea[1].y + gHowToPlayArea[1].h - 10 - 30;
+			gHowToDemoRects[4].y = gHowToPlayArea[1].y + 17;
+		}
 		break;
 	case HIGHSCORES_MENU:
 	case ENTERNAME_MENU:
@@ -1300,7 +1382,7 @@ bool loadTextResources(SDL_Renderer *r)
 	gtVersionText[1] = makeTextTexture(r, MENU_SMALL,
 		"Game Music Copyright 2017 by Brian Hicks", TEXT_COLOR, BG_COLOR, BLENDED, &gVersion_rect[1]);
 	gtVersionText[2] = makeTextTexture(r, MENU_SMALL,
-		"Game Code Copyright 2017-2020 under GNU GPLv3 by Matthew K. Daddysman", TEXT_COLOR, BG_COLOR, BLENDED, &gVersion_rect[2]);
+		"Game Code Copyright 2017-2021 under GNU GPLv3 by Matthew K. Daddysman", TEXT_COLOR, BG_COLOR, BLENDED, &gVersion_rect[2]);
 
 	if (gtBack != NULL)
 		SDL_DestroyTexture(gtBack);
@@ -1415,7 +1497,11 @@ bool loadTextResources(SDL_Renderer *r)
 	gtHowToPlayKeyText[3][1] = makeTextTexture(r, MENU_LARGE, "A", BG_COLOR, BG_COLOR, BLENDED, &gDummyRect);
 	gtHowToPlayKeyText[4][1] = makeTextTexture(r, MENU_LARGE, "^", BG_COLOR, BG_COLOR, BLENDED, &gDummyRect);
 	gtHowToPlayKeyText[5][1] = makeTextTexture(r, MENU_LARGE, "CTRL", BG_COLOR, BG_COLOR, BLENDED, &gDummyRect);
-	
+
+	gtHowToHitPoints[0] = makeTextTexture(r, STANDARD_SMALL, "Hit Points: 1", TEXT_COLOR, BG_COLOR, SHADED, &grHowToHitPoints[0]);
+	gtHowToHitPoints[1] = makeTextTexture(r, STANDARD_SMALL, "Hit Points: 0", TEXT_COLOR, BG_COLOR, SHADED, &grHowToHitPoints[1]);
+	gtHowToHitPoints[2] = makeTextTexture(r, STANDARD_SMALL, "Hit Points:  ", TEXT_COLOR, BG_COLOR, SHADED, &grHowToHitPoints[2]);
+
 	return loadGameTextResources(r);
 }
 

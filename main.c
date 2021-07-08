@@ -9,9 +9,13 @@
 
 //global variables 
 unsigned int gRandCount; // number of times the random number generator has been called 
-TTF_Font *gSmallFont, *gLargeFont, *gMenuFont, *gMenuFontSmall;
+//TTF_Font *gSmallFont[MAX_FONTS], *gLargeFont[MAX_FONTS], *gMenuFont[MAX_FONTS], *gMenuFontSmall[MAX_FONTS];
+TTF_Font *gFontList[MAX_FONTS][MAX_RESOLUTIONS];
 enum ProgramState gProgramState;
 bool gDrawFPS;
+bool gUpdateResolution;
+
+extern enum ResolutionOptions gResolutionOptions;
 
 void MoveToGame(SDL_Renderer *r)
 {
@@ -28,7 +32,7 @@ void MoveToShell(int levelAchieved, unsigned long int time, SDL_Renderer *r)
 
 int main(int argc, char* args[])
 {
-	int w, h;
+	int w, h, i, j;
 	int result = 0;
 	char buffer[15];
 	SDL_Window *window = NULL;
@@ -36,16 +40,21 @@ int main(int argc, char* args[])
 	SDL_Surface *icon = NULL;
 
 	SDL_Texture *tFPS = NULL;
+	SDL_Surface *sLoading = NULL;
 	SDL_Texture *tLoading = NULL;
 	SDL_Rect Loading_rect;
 	SDL_Rect Clipping_rect = {
 		0, 0,
 		SCREEN_WIDTH, SCREEN_HEIGHT
 	};
+	TTF_Font *TempFont = NULL;
+	initalizeShellPointers();
+	initalizeGamePointers();
 	
 	bool quit = false;	
 	bool isEdgeHit = false;
 	gDrawFPS = false;
+	gUpdateResolution = false;
 		
 	int fps = 0; 
 	int framecount = 0; 
@@ -57,10 +66,10 @@ int main(int argc, char* args[])
 	SDL_Rect fps_rect;		
 
 	//initalize global variables
-	gSmallFont = NULL;
-	gLargeFont = NULL;	
-	gMenuFont = NULL;
-	gMenuFontSmall = NULL;
+	for (i = 0; i < MAX_FONTS; i++)
+		for (j = 0; j < MAX_RESOLUTIONS; j++)
+			gFontList[i][j] = NULL;
+
 	gProgramState = SHELL;
 	//end initalize global variables
 
@@ -102,7 +111,9 @@ int main(int argc, char* args[])
 	SDL_SetWindowIcon(window, icon); //attach it to the window
 	SDL_FreeSurface(icon); //free the surface and set the pointer to NULL 
 	icon = NULL;
-
+#ifdef _DEBUG_BUILD_
+	printf("Window Success!\n");
+#endif
 	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
 	if (renderer == NULL)
 	{
@@ -113,24 +124,21 @@ int main(int argc, char* args[])
 		SDL_Quit();
 		return(-5);
 	}
+	if (SDL_RenderSetLogicalSize(renderer, SCREEN_WIDTH, SCREEN_HEIGHT))
+		printf("Renderer Logical Size not set. Error: %s\n", SDL_GetError());
 	if (SDL_RenderSetClipRect(renderer, &Clipping_rect) < 0)
 		printf("Clipping not set. Error: %s\n", SDL_GetError());
 	if (SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND) < 0)
 		printf("Blending not set. Error: %s\n", SDL_GetError());
-
-	gMenuFont = TTF_OpenFont(MENU_FONT_FILE, 32);
-	if (gMenuFont == NULL)
-	{
-		printf("Font could not be loaded Error:%s\n", SDL_GetError());
-		SDL_DestroyRenderer(renderer);
-		SDL_DestroyWindow(window);
-		TTF_Quit();
-		Mix_Quit();
-		SDL_Quit();
-		return(-6);
-	}
+#ifdef _DEBUG_BUILD_
+	printf("Renderer Success!\n");
+#endif
+	TempFont = TTF_OpenFont(MENU_FONT_FILE, 32);
 	//now that the basics are loaded display a loading message
-	tLoading = makeTextTexture(renderer, gMenuFont, "Loading...", TEXT_COLOR, BG_COLOR, SOLID);
+	sLoading = TTF_RenderText_Solid(TempFont, "Loading...", TEXT_COLOR);
+	tLoading = SDL_CreateTextureFromSurface(renderer, sLoading);
+	SDL_FreeSurface(sLoading);
+	sLoading = NULL;
 	SDL_QueryTexture(tLoading, NULL, NULL, &w, &h);
 	Loading_rect.x = (SCREEN_WIDTH - w) / 2;
 	Loading_rect.y = (SCREEN_HEIGHT - h) / 2;
@@ -141,41 +149,22 @@ int main(int argc, char* args[])
 	SDL_RenderCopy(renderer, tLoading, NULL, &Loading_rect);
 	SDL_RenderPresent(renderer); //present the frame 
 
-	gMenuFontSmall = TTF_OpenFont(MENU_FONT_FILE, 16);
-	if (gMenuFont == NULL)
-	{
-		printf("Font could not be loaded Error:%s\n", SDL_GetError());
-		SDL_DestroyRenderer(renderer);
-		SDL_DestroyWindow(window);
-		TTF_Quit();
-		Mix_Quit();
-		SDL_Quit();
-		return(-7);
-	}
+	//load the font maxtrix 
+	gFontList[0][0] = TTF_OpenFont(GAME_FONT_FILE, 36);
+	gFontList[1][0] = TTF_OpenFont(GAME_FONT_FILE, 144);
+	gFontList[2][0] = TTF_OpenFont(MENU_FONT_FILE, 16);
+	gFontList[3][0] = TTF_OpenFont(MENU_FONT_FILE, 32);
 
-	gSmallFont = TTF_OpenFont(GAME_FONT_FILE, 36);
-	if (gSmallFont == NULL)
-	{
-		printf("Font could not be loaded Error:%s\n", SDL_GetError());
-		SDL_DestroyRenderer(renderer);
-		SDL_DestroyWindow(window);
-		TTF_Quit();
-		Mix_Quit();
-		SDL_Quit();
-		return(-8);
-	}
+	gFontList[0][1] = TTF_OpenFont(GAME_FONT_FILE, (int)(36 * 1.28));
+	gFontList[1][1] = TTF_OpenFont(GAME_FONT_FILE, (int)(144 * 1.28));
+	gFontList[2][1] = TTF_OpenFont(MENU_FONT_FILE, (int)(16 * 1.28));
+	gFontList[3][1] = TTF_OpenFont(MENU_FONT_FILE, (int)(32 * 1.28));
 
-	gLargeFont = TTF_OpenFont(GAME_FONT_FILE, 144);
-	if (gLargeFont == NULL)
-	{
-		printf("Large font could not be loaded Error:%s\n", SDL_GetError());
-		SDL_DestroyRenderer(renderer);
-		SDL_DestroyWindow(window);
-		TTF_Quit();
-		Mix_Quit();
-		SDL_Quit();
-		return(-9);
-	}
+	gFontList[0][2] = TTF_OpenFont(GAME_FONT_FILE, (int)(36 * 1.6));
+	gFontList[1][2] = TTF_OpenFont(GAME_FONT_FILE, (int)(144 * 1.6));
+	gFontList[2][2] = TTF_OpenFont(MENU_FONT_FILE, (int)(16 * 1.6));
+	gFontList[3][2] = TTF_OpenFont(MENU_FONT_FILE, (int)(32 * 1.6));
+		
 #ifdef _DEBUG_BUILD_
 	printf("Main resources loaded\n");
 #endif
@@ -185,7 +174,10 @@ int main(int argc, char* args[])
 #ifdef _DEBUG_BUILD_
 	printf("Audio open\n");
 #endif
-
+	loadTextResources(renderer);
+#ifdef _DEBUG_BUILD_
+	printf("Text resources loaded\n");
+#endif
 	loadShellResources(renderer);
 #ifdef _DEBUG_BUILD_
 	printf("Shell resources loaded\n");
@@ -196,12 +188,9 @@ int main(int argc, char* args[])
 #endif
 	
 	sprintf_s(buffer, sizeof(buffer), "FPS: %02d", 0);
-	tFPS = makeTextTexture(renderer, gSmallFont, buffer, TEXT_COLOR, BG_COLOR, SHADED);
-	SDL_QueryTexture(tFPS, NULL, NULL, &w, &h);
-	fps_rect.x = SCREEN_WIDTH - PLAYAREA_PADDING - w - 5;
+	tFPS = makeTextTexture(renderer, STANDARD_SMALL, buffer, TEXT_COLOR, BG_COLOR, SHADED, &fps_rect);
+	fps_rect.x = SCREEN_WIDTH - PLAYAREA_PADDING - fps_rect.w - 5;
 	fps_rect.y = PLAYAREA_PADDING;
-	fps_rect.w = w;
-	fps_rect.h = h;	
 	
 	framecount = 0;
 	fps = 0;
@@ -209,12 +198,18 @@ int main(int argc, char* args[])
 	if (tLoading != NULL)
 		SDL_DestroyTexture(tLoading); //clean up the loading text
 	tLoading = NULL;
+	if (TempFont != NULL)
+		TTF_CloseFont(TempFont);
+
 #ifdef _DEBUG_BUILD_
 	printf("Entering game loop\n");
 #endif
 	while (!quit)
 	{
 		isEdgeHit = false;
+		if (gUpdateResolution)
+			updateResolution(window,renderer);
+
 		while (SDL_PollEvent(&e) != 0)
 		{
 			switch (e.type)
@@ -293,12 +288,12 @@ int main(int argc, char* args[])
 			if (tFPS != NULL)
 				SDL_DestroyTexture(tFPS);
 			sprintf_s(buffer, sizeof(buffer), "FPS: %02d", fps);
-			tFPS = makeTextTexture(renderer, gSmallFont, buffer, TEXT_COLOR, BG_COLOR, SHADED);
+			tFPS = makeTextTexture(renderer, STANDARD_SMALL, buffer, TEXT_COLOR, BG_COLOR, SHADED, &fps_rect);
 			SDL_RenderCopy(renderer, tFPS, NULL, &fps_rect);
 		}
 
 		SDL_RenderPresent(renderer); //present the frame 
-
+		
 		//process clock stuff 
 		currentTick = SDL_GetTicks();
 		if (currentTick - startTick >= 1000) //if longer than one second
@@ -340,14 +335,15 @@ int main(int argc, char* args[])
 	if (tFPS != NULL)
 		SDL_DestroyTexture(tFPS);
 
-	if (gMenuFont != NULL)
-		TTF_CloseFont(gMenuFont);
-	if (gMenuFont != NULL)
-		TTF_CloseFont(gMenuFontSmall);
-	if (gMenuFont != NULL)
-		TTF_CloseFont(gSmallFont);
-	if (gMenuFont != NULL)
-		TTF_CloseFont(gLargeFont);
+	for (i = 0; i < MAX_FONTS; i++)
+	{
+		for (j = 0; j < MAX_RESOLUTIONS; j++)
+		{
+			if (gFontList[i][j] != NULL)
+				TTF_CloseFont(gFontList[i][j]);
+			gFontList[i][j] = NULL;
+		}
+	}			
 	
 	if (renderer != NULL)
 		SDL_DestroyRenderer(renderer);
@@ -400,10 +396,16 @@ void DrawBox(SDL_Renderer *r, SDL_Rect *box, enum BoxColors color)
 
 }
 
-SDL_Texture* makeTextTexture(SDL_Renderer *r, TTF_Font *font, const char *text, SDL_Color fg, SDL_Color bg, enum TextType tt)
+SDL_Texture* makeTextTexture(SDL_Renderer *r, enum FONTS efont, const char *text, SDL_Color fg, SDL_Color bg, enum TextType tt, SDL_Rect *rect)
 {
 	SDL_Surface *text_surface = NULL;
 	SDL_Texture *text_texture = NULL;
+	TTF_Font *font, *basefont; 
+	int w, h;
+
+	font = gFontList[efont][gResolutionOptions];
+	basefont = gFontList[efont][0];
+	//tt = SOLID; //ignore the input choice, solid looks better! 
 
 	switch (tt)
 	{
@@ -440,6 +442,9 @@ SDL_Texture* makeTextTexture(SDL_Renderer *r, TTF_Font *font, const char *text, 
 	text_texture = SDL_CreateTextureFromSurface(r, text_surface);
 	SDL_FreeSurface(text_surface);
 	text_surface = NULL;
+	TTF_SizeText(basefont, text, &w, &h);
+	rect->w = w;
+	rect->h = h;
 	return(text_texture);
 }
 
@@ -450,6 +455,37 @@ SDL_Rect* copyToSDLRect(struct AIBox *ai, SDL_Rect *sdl)
 	sdl->w = ai->w;
 	sdl->h = ai->h;
 	return sdl;
+}
+
+bool updateResolution(SDL_Window *win, SDL_Renderer *r)
+{
+	int w, h; 
+
+	switch (gResolutionOptions)
+	{
+	case r800x600:
+		w = 800; h = 600;
+		break;
+	case r1024x768:
+		w = 1024; h = 768;
+		break;
+	case r1280x960:
+		w = 1280; h = 960;
+		break;
+	default:
+		break;
+	}
+
+	SDL_SetWindowSize(win, w, h);
+	SDL_Rect Clipping_rect = {
+		0, 0,
+		w, h
+	};
+	SDL_RenderSetClipRect(r, &Clipping_rect);
+	SDL_SetWindowPosition(win, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+	loadTextResources(r);
+	gUpdateResolution = false;
+	return true;
 }
 
 void seedrnd(void)
@@ -468,3 +504,4 @@ int rnd(int range)
 
 	return(rand() % range);
 }
+

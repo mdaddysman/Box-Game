@@ -21,7 +21,7 @@
 
 //game build settings
 //#define _DEBUG_BUILD_ //should debug text be shown 
-#define BUILD_NUMBER 235
+#define BUILD_NUMBER 900
 
 //constants 
 static const int SCREEN_WIDTH = 800;
@@ -72,11 +72,13 @@ enum ProgrameState {SHELL = 0, GAME};
 enum GameState { GAMEPLAY = 0, GAMEOVER, VICTORY, COUNTDOWN, NOGAME };
 enum BoxColors { BLACK = 0, WHITE, RED, BLUE, ORANGE, GREEN, YELLOW, TRANSPARENT_BLACK };
 enum TextType { SOLID = 0, SHADED, BLENDED };
+enum FONTS { STANDARD_SMALL = 0, STANDARD_LARGE, MENU_SMALL, MENU_LARGE, MAX_FONTS };
 enum MoveDirection { NORTH = 0, SOUTH, EAST, WEST, NORTHEAST, NORTHWEST, SOUTHEAST, SOUTHWEST, numMoveDirection };
 enum AIType {RANDOM = 0, SEEK, NONE};
 enum MenuOptions {STARTGAME = 0, HOWTOPLAY, HIGHSCORES, OPTIONS, EXIT, numMenuOptions};
 enum CurrentMenu {MAIN_MENU = 0, HOWTOPLAY_MENU, HIGHSCORES_MENU, OPTIONS_MENU, ENTERNAME_MENU};
-enum OptionsMenuOptions {MASTERVOLUME = 0, MUSICVOLUME, SOUNDVOLUME, FPSONOFF, BACK_OPTIONS };
+enum OptionsMenuOptions {MASTERVOLUME = 0, MUSICVOLUME, SOUNDVOLUME, FPSONOFF, RESOLUTION, BACK_OPTIONS };
+enum ResolutionOptions { r800x600 = 0, r1024x768, r1280x960, MAX_RESOLUTIONS };
 
 struct AIBox {
 	int x;
@@ -125,6 +127,8 @@ void changeAIBoxCoordinates(struct AIBox *ai);
 int checkAIBoxDirection(struct AIBox *ai);
 bool pauseGame(SDL_Keycode keycode);
 void checkEndGame(SDL_Renderer *r);
+void initalizeGamePointers(void);
+bool loadGameTextResources(SDL_Renderer *r);
 
 
 //found in shell.c
@@ -141,14 +145,18 @@ void resetHighScores(void);
 void openHighScoresScreen(SDL_Renderer *r);
 void checkIfNewHighScore(int levelAchieved, unsigned long int time, SDL_Renderer *r);
 void acceptNameInput(SDL_Event *e, SDL_Renderer *r);
+bool loadTextResources(SDL_Renderer *r);
+void initalizeShellPointers(void);
+
 
 //found in main.c
 void MoveToGame(SDL_Renderer *r);
 void MoveToShell(int levelAchieved, unsigned long int time, SDL_Renderer *r);
 void DrawBox(SDL_Renderer *r, SDL_Rect *box, enum BoxColors color);
-SDL_Texture* makeTextTexture(SDL_Renderer *r, TTF_Font *font, const char *text, SDL_Color fg, SDL_Color bg, enum TextType tt);
+SDL_Texture* makeTextTexture(SDL_Renderer *r, enum FONTS font, const char *text, SDL_Color fg, SDL_Color bg, enum TextType tt, SDL_Rect *rect);
 SDL_Rect* copyToSDLRect(struct AIBox *ai, SDL_Rect *sdl);
 void seedrnd(void);
 int rnd(int range);
+bool updateResolution(SDL_Window *win, SDL_Renderer *r);
 
 #endif

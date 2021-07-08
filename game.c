@@ -19,7 +19,7 @@ Mix_Chunk *gCountdownSound, *gHitSound, *gDeathSound, *gWinSound;;
 SDL_Texture *gtLevelNumber, *gtHitPoints, *gtBoost, *gtTime;
 SDL_Rect gLevel_rect, gHitPoints_rect, gBoost_rect, gBoostmeter_rect, gBoostdeplet_rect, gTime_rect, gBorder, gPlayarea;
 SDL_Texture *gtmoreAI, *gthardGoal, *gtrecover, *gtfasterAI, *gtfasterrecharge, *gtyellowbox, *gtgameover, *gtvictory, *gtcontinue; //end game messages
-SDL_Rect ggameover_rect, gvictory_rect, gcontinue_rect;
+SDL_Rect gtmoreAI_rect, gthardGoal_rect, gtrecover_rect, gtfasterAI_rect, gtfasterrecharge_rect, gtyellowbox_rect, ggameover_rect, gvictory_rect, gcontinue_rect;
 SDL_Rect gupgradeRects[5];  //end game message storage and rect 
 SDL_Texture *gupgradeTextures[5];
 SDL_Rect gcountdownRects[3];
@@ -33,12 +33,8 @@ SDL_Texture *gtResume, *gtQuit, *gtResumeSel, *gtQuitSel;
 SDL_Rect gResume_rect, gQuit_rect; 
 int gPausedOption;
 
-extern TTF_Font *gSmallFont, *gLargeFont, *gMenuFont; //extern fonts
-
-void loadGameResources(SDL_Renderer *r)
+void initalizeGamePointers(void)
 {
-	int i, w, h;
-	SDL_Color Select_Color = { 0, 255, 255 };
 	//initalize global variables 
 	gMusic = NULL;
 	gCountdownSound = NULL;
@@ -64,8 +60,14 @@ void loadGameResources(SDL_Renderer *r)
 	gtResume = NULL;
 	gtResumeSel = NULL;
 	gtQuit = NULL;
-	gtQuitSel = NULL;	
+	gtQuitSel = NULL;
+}
 
+void loadGameResources(SDL_Renderer *r)
+{
+	int i;
+	
+	
 	gPlayerBox.x = 200;
 	gPlayerBox.y = 200;
 	gPlayerBox.w = PLAYERBOX_WIDTH;
@@ -109,7 +111,6 @@ void loadGameResources(SDL_Renderer *r)
 
 	}
 
-
 	gBorder.x = PLAYAREA_PADDING;
 	gBorder.y = SCOREBAR_HEIGHT + PLAYAREA_PADDING;
 	gBorder.w = SCREEN_WIDTH - 2 * PLAYAREA_PADDING;
@@ -134,74 +135,117 @@ void loadGameResources(SDL_Renderer *r)
 	gHitSound = Mix_LoadWAV(WALL_SOUND);
 	gDeathSound = Mix_LoadWAV(DEATH_SOUND);
 	gWinSound = Mix_LoadWAV(WIN_SOUND);
-
-	gtBoost = makeTextTexture(r, gSmallFont, "Boost:", TEXT_COLOR, BG_COLOR, SHADED);
-	SDL_QueryTexture(gtBoost, NULL, NULL, &w, &h);
+		
 	gBoost_rect.x = gHitPoints_rect.x + gHitPoints_rect.w + 20;
 	gBoost_rect.y = PLAYAREA_PADDING;
-	gBoost_rect.w = w;
-	gBoost_rect.h = h;
 
-	gtgameover = makeTextTexture(r, gLargeFont, "GAME OVER", TEXT_COLOR, BG_COLOR, BLENDED);
-	SDL_QueryTexture(gtgameover, NULL, NULL, &w, &h);
-	ggameover_rect.w = w;
-	ggameover_rect.h = h;
-	ggameover_rect.x = gPlayarea.x + gPlayarea.w / 2 - w / 2;
-	ggameover_rect.y = gPlayarea.y + gPlayarea.h / 2 - h / 2;
+	ggameover_rect.x = gPlayarea.x + gPlayarea.w / 2 - ggameover_rect.w / 2;
+	ggameover_rect.y = gPlayarea.y + gPlayarea.h / 2 - ggameover_rect.h / 2;
 
-	gtvictory = makeTextTexture(r, gLargeFont, "Level Complete!", TEXT_COLOR, BG_COLOR, BLENDED);
-	SDL_QueryTexture(gtvictory, NULL, NULL, &w, &h);
-	gvictory_rect.w = w;
-	gvictory_rect.h = h;
-	gvictory_rect.x = gPlayarea.x + gPlayarea.w / 2 - w / 2;
-	gvictory_rect.y = gPlayarea.y + gPlayarea.h / 2 - h / 2;
+	gvictory_rect.x = gPlayarea.x + gPlayarea.w / 2 - gvictory_rect.w / 2;
+	gvictory_rect.y = gPlayarea.y + gPlayarea.h / 2 - gvictory_rect.h / 2;
 
-	gtcontinue = makeTextTexture(r, gSmallFont, "Press ENTER or SPACE to continue", TEXT_COLOR, BG_COLOR, BLENDED);
-	SDL_QueryTexture(gtcontinue, NULL, NULL, &w, &h);
-	gcontinue_rect.w = w;
-	gcontinue_rect.h = h;
-	gcontinue_rect.x = gPlayarea.x + gPlayarea.w / 2 - w / 2;
-	gcontinue_rect.y = gPlayarea.y + gPlayarea.h / 2 - h / 2;
+	gcontinue_rect.x = gPlayarea.x + gPlayarea.w / 2 - gcontinue_rect.w / 2;
+	gcontinue_rect.y = gPlayarea.y + gPlayarea.h / 2 - gcontinue_rect.h / 2;
 
-
-	gtmoreAI = makeTextTexture(r, gSmallFont, "You will now face more opposition.", TEXT_COLOR, BG_COLOR, BLENDED);
-	gtrecover = makeTextTexture(r, gSmallFont, "Good Work! You gain 1 hit point and a longer boost!", TEXT_COLOR, BG_COLOR, BLENDED);
-	gthardGoal = makeTextTexture(r, gSmallFont, "Your goal will now behave more erratically.", TEXT_COLOR, BG_COLOR, BLENDED);
-	gtfasterAI = makeTextTexture(r, gSmallFont, "Some of your opposition will now move faster.", TEXT_COLOR, BG_COLOR, BLENDED);
-	gtfasterrecharge = makeTextTexture(r, gSmallFont, "Your boost will also recharge faster.", TEXT_COLOR, BG_COLOR, BLENDED);
-	gtyellowbox = makeTextTexture(r, gSmallFont, "A new challenge! The yellow box will home in on your position.", TEXT_COLOR, BG_COLOR, BLENDED);
-
+	//fill in the dummy x&y just in case
+	gtmoreAI_rect.x = 1; gtmoreAI_rect.y = 1;
+	gtrecover_rect.x = 1; gtrecover_rect.y = 1;
+	gthardGoal_rect.x = 1; gthardGoal_rect.y = 1;
+	gtfasterAI_rect.x = 1; gtfasterAI_rect.y = 1;
+	gtfasterrecharge_rect.x = 1; gtfasterrecharge_rect.y = 1;
+	gtyellowbox_rect.x = 1; gtyellowbox_rect.y = 1;
+		
 	gupgradeTextures[0] = gtmoreAI; gupgradeTextures[1] = gtfasterAI; gupgradeTextures[2] = gthardGoal; //avoid NULL pointers 
 	gupgradeTextures[3] = gtrecover; gupgradeTextures[4] = gtfasterrecharge;
 
-	gcountdownTextures[0] = makeTextTexture(r, gLargeFont, "3", TEXT_COLOR, BG_COLOR, BLENDED);
-	gcountdownTextures[1] = makeTextTexture(r, gLargeFont, "2", TEXT_COLOR, BG_COLOR, BLENDED);
-	gcountdownTextures[2] = makeTextTexture(r, gLargeFont, "1", TEXT_COLOR, BG_COLOR, BLENDED);
 	for (i = 0; i < 3; i++)
 	{
-		SDL_QueryTexture(gcountdownTextures[i], NULL, NULL, &w, &h);
-		gcountdownRects[i].w = w;
-		gcountdownRects[i].h = h;
-		gcountdownRects[i].x = gPlayarea.x + gPlayarea.w / 2 - w / 2;
-		gcountdownRects[i].y = gPlayarea.y + gPlayarea.h / 2 - h / 2;
+		gcountdownRects[i].x = gPlayarea.x + gPlayarea.w / 2 - gcountdownRects[i].w / 2;
+		gcountdownRects[i].y = gPlayarea.y + gPlayarea.h / 2 - gcountdownRects[i].h / 2;
 	}
 
-	//textures for pause menu
-	gtResume = makeTextTexture(r, gMenuFont, "Continue", TEXT_COLOR, BG_COLOR, BLENDED);
-	gtResumeSel = makeTextTexture(r, gMenuFont, "Continue", Select_Color, BG_COLOR, BLENDED);
-	SDL_QueryTexture(gtResume, NULL, NULL, &w, &h);
-	gResume_rect.w = w;
-	gResume_rect.h = h;
-	gResume_rect.x = SCREEN_WIDTH / 2 - w / 2;
-	gResume_rect.y = SCREEN_HEIGHT / 2 - h - 1; 
-	gtQuit = makeTextTexture(r, gMenuFont, "Quit", TEXT_COLOR, BG_COLOR, BLENDED);
-	gtQuitSel = makeTextTexture(r, gMenuFont, "Quit", Select_Color, BG_COLOR, BLENDED);
-	SDL_QueryTexture(gtQuit, NULL, NULL, &w, &h);
-	gQuit_rect.w = w;
-	gQuit_rect.h = h;
-	gQuit_rect.x = SCREEN_WIDTH / 2 - w / 2;
+	//rects for pause menu
+	gResume_rect.x = SCREEN_WIDTH / 2 - gResume_rect.w / 2;
+	gResume_rect.y = SCREEN_HEIGHT / 2 - gResume_rect.h - 1;
+	
+	gQuit_rect.x = SCREEN_WIDTH / 2 - gQuit_rect.w / 2;
 	gQuit_rect.y = SCREEN_HEIGHT / 2 + 1;
 	gPausedOption = 0;
+}
+
+bool loadGameTextResources(SDL_Renderer *r)
+{
+	SDL_Color Select_Color = { 0, 255, 255 };
+
+	if (gtBoost != NULL)
+		SDL_DestroyTexture(gtBoost);
+	gtBoost = makeTextTexture(r, STANDARD_SMALL, "Boost:", TEXT_COLOR, BG_COLOR, SHADED, &gBoost_rect);
+	
+	if (gtgameover != NULL)
+		SDL_DestroyTexture(gtgameover);
+	gtgameover = makeTextTexture(r, STANDARD_LARGE, "GAME OVER", TEXT_COLOR, BG_COLOR, BLENDED, &ggameover_rect);
+	
+	if (gtvictory != NULL)
+		SDL_DestroyTexture(gtvictory);
+	gtvictory = makeTextTexture(r, STANDARD_LARGE, "Level Complete!", TEXT_COLOR, BG_COLOR, BLENDED, &gvictory_rect);
+	
+	if (gtcontinue != NULL)
+		SDL_DestroyTexture(gtcontinue);
+	gtcontinue = makeTextTexture(r, STANDARD_SMALL, "Press ENTER or SPACE to continue", TEXT_COLOR, BG_COLOR, BLENDED, &gcontinue_rect);
+
+	if (gtmoreAI != NULL)
+		SDL_DestroyTexture(gtmoreAI);
+	gtmoreAI = makeTextTexture(r, STANDARD_SMALL, "You will now face more opposition.", TEXT_COLOR, BG_COLOR, BLENDED, &gtmoreAI_rect);
+	
+	if (gtrecover != NULL)
+		SDL_DestroyTexture(gtrecover);
+	gtrecover = makeTextTexture(r, STANDARD_SMALL, "Good Work! You gain 1 hit point and a longer boost!", TEXT_COLOR, BG_COLOR, BLENDED, &gtrecover_rect);
+	
+	if (gthardGoal != NULL)
+		SDL_DestroyTexture(gthardGoal);
+	gthardGoal = makeTextTexture(r, STANDARD_SMALL, "Your goal will now behave more erratically.", TEXT_COLOR, BG_COLOR, BLENDED, &gthardGoal_rect);
+	
+	if (gtfasterAI != NULL)
+		SDL_DestroyTexture(gtfasterAI);
+	gtfasterAI = makeTextTexture(r, STANDARD_SMALL, "Some of your opposition will now move faster.", TEXT_COLOR, BG_COLOR, BLENDED, &gtfasterAI_rect);
+	
+	if (gtfasterrecharge != NULL)
+		SDL_DestroyTexture(gtfasterrecharge);
+	gtfasterrecharge = makeTextTexture(r, STANDARD_SMALL, "Your boost will also recharge faster.", TEXT_COLOR, BG_COLOR, BLENDED, &gtfasterrecharge_rect);
+	
+	if (gtyellowbox != NULL)
+		SDL_DestroyTexture(gtyellowbox);
+	gtyellowbox = makeTextTexture(r, STANDARD_SMALL, "A new challenge! The yellow box will home in on your position.", TEXT_COLOR, BG_COLOR, BLENDED, &gtyellowbox_rect);
+
+	if (gcountdownTextures[0] != NULL)
+		SDL_DestroyTexture(gcountdownTextures[0]);
+	gcountdownTextures[0] = makeTextTexture(r, STANDARD_LARGE, "3", TEXT_COLOR, BG_COLOR, BLENDED, &gcountdownRects[0]);
+	
+	if (gcountdownTextures[1] != NULL)
+		SDL_DestroyTexture(gcountdownTextures[1]);
+	gcountdownTextures[1] = makeTextTexture(r, STANDARD_LARGE, "2", TEXT_COLOR, BG_COLOR, BLENDED, &gcountdownRects[1]);
+	
+	if (gcountdownTextures[2] != NULL)
+		SDL_DestroyTexture(gcountdownTextures[2]);
+	gcountdownTextures[2] = makeTextTexture(r, STANDARD_LARGE, "1", TEXT_COLOR, BG_COLOR, BLENDED, &gcountdownRects[2]);
+
+	if (gtResume != NULL)
+		SDL_DestroyTexture(gtResume);
+	gtResume = makeTextTexture(r, MENU_LARGE, "Continue", TEXT_COLOR, BG_COLOR, BLENDED, &gResume_rect);
+	
+	if (gtResumeSel != NULL)
+		SDL_DestroyTexture(gtResumeSel);
+	gtResumeSel = makeTextTexture(r, MENU_LARGE, "Continue", Select_Color, BG_COLOR, BLENDED, &gResume_rect);
+	
+	if (gtQuit != NULL)
+		SDL_DestroyTexture(gtQuit);
+	gtQuit = makeTextTexture(r, MENU_LARGE, "Quit", TEXT_COLOR, BG_COLOR, BLENDED, &gQuit_rect);
+	
+	if (gtQuitSel != NULL)
+		SDL_DestroyTexture(gtQuitSel);
+	gtQuitSel = makeTextTexture(r, MENU_LARGE, "Quit", Select_Color, BG_COLOR, BLENDED, &gQuit_rect);
+	return true;
 }
 
 void freeGameResources(void)
@@ -301,7 +345,7 @@ void newGame(SDL_Renderer *r)
 {
 
 	char buffer[100];
-	int w, h, i, j;
+	int i, j;
 	unsigned long int m, s;
 	short int done;
 	double playerbuffer = PLAYER_BUFFER*PLAYER_BUFFER;
@@ -315,22 +359,17 @@ void newGame(SDL_Renderer *r)
 	if (gtLevelNumber != NULL)
 		SDL_DestroyTexture(gtLevelNumber);
 	sprintf_s(buffer, sizeof(buffer), "Level: %d", gLevel);
-	gtLevelNumber = makeTextTexture(r, gSmallFont, buffer, TEXT_COLOR, BG_COLOR, SHADED);
-	SDL_QueryTexture(gtLevelNumber, NULL, NULL, &w, &h);
+	gtLevelNumber = makeTextTexture(r, STANDARD_SMALL, buffer, TEXT_COLOR, BG_COLOR, SHADED, &gLevel_rect);
 	gLevel_rect.x = PLAYAREA_PADDING;
 	gLevel_rect.y = PLAYAREA_PADDING;
-	gLevel_rect.w = w;
-	gLevel_rect.h = h;
+
 
 	if (gtHitPoints != NULL)
 		SDL_DestroyTexture(gtHitPoints);
 	sprintf_s(buffer, sizeof(buffer), "Hit Points: %d", gHitPoints);
-	gtHitPoints = makeTextTexture(r, gSmallFont, buffer, TEXT_COLOR, BG_COLOR, SHADED);
-	SDL_QueryTexture(gtHitPoints, NULL, NULL, &w, &h);
+	gtHitPoints = makeTextTexture(r, STANDARD_SMALL, buffer, TEXT_COLOR, BG_COLOR, SHADED, &gHitPoints_rect);
 	gHitPoints_rect.x = PLAYAREA_PADDING + gLevel_rect.w + 20;
 	gHitPoints_rect.y = PLAYAREA_PADDING;
-	gHitPoints_rect.w = w;
-	gHitPoints_rect.h = h;
 
 	gBoost_rect.x = gHitPoints_rect.x + gHitPoints_rect.w + 20;
 
@@ -352,12 +391,9 @@ void newGame(SDL_Renderer *r)
 	if (gtTime != NULL)
 		SDL_DestroyTexture(gtTime);
 	sprintf_s(buffer, sizeof(buffer), "Time: %02d:%02d  /  %02d:%02d", 0, 0, m, s);
-	gtTime = makeTextTexture(r, gSmallFont, buffer, TEXT_COLOR, BG_COLOR, SHADED);
-	SDL_QueryTexture(gtTime, NULL, NULL, &w, &h);
+	gtTime = makeTextTexture(r, STANDARD_SMALL, buffer, TEXT_COLOR, BG_COLOR, SHADED, &gTime_rect);
 	gTime_rect.x = gBoostmeter_rect.x + gBoostmeter_rect.w + 20;
 	gTime_rect.y = PLAYAREA_PADDING;
-	gTime_rect.w = w;
-	gTime_rect.h = h;
 
 	gPlayerBox.x = rnd(gPlayarea.w - 2 * edgebuffer) + gPlayarea.x + edgebuffer;
 	gPlayerBox.y = rnd(gPlayarea.h - 2 * edgebuffer) + gPlayarea.y + edgebuffer;
@@ -541,7 +577,7 @@ bool pauseGame(SDL_Keycode keycode)
 
 void gameLogic(SDL_Renderer *r, bool isedgehit)
 {
-	int i, w, h;
+	int i;
 	char buffer[20];
 	SDL_Rect temprect;
 	SDL_Rect playerrect = {
@@ -591,11 +627,15 @@ void gameLogic(SDL_Renderer *r, bool isedgehit)
 				gHitPoints++;
 				gBoostDown = gBoostDown - BOOST_DOWN_UPGRADE;
 				gupgradeTextures[gnumUpgrades] = gtrecover;
+				gupgradeRects[gnumUpgrades].w = gtrecover_rect.w;
+				gupgradeRects[gnumUpgrades].h = gtrecover_rect.h;
 				gnumUpgrades++;
 				if ((gLevel % 10) == 0)
 				{
 					gBoostRecharge = gBoostRecharge + BOOST_RECHARGE_UPGRADE;
 					gupgradeTextures[gnumUpgrades] = gtfasterrecharge;
+					gupgradeRects[gnumUpgrades].w = gtfasterrecharge_rect.w;
+					gupgradeRects[gnumUpgrades].h = gtfasterrecharge_rect.h;
 					gnumUpgrades++;
 				}
 			}
@@ -603,30 +643,35 @@ void gameLogic(SDL_Renderer *r, bool isedgehit)
 			{
 				gNumAIs++;
 				gupgradeTextures[gnumUpgrades] = gtmoreAI;
+				gupgradeRects[gnumUpgrades].w = gtmoreAI_rect.w;
+				gupgradeRects[gnumUpgrades].h = gtmoreAI_rect.h;
 				gnumUpgrades++;
 			}
 			if ((gLevel % 3) == 0)
 			{
 				gGoalBox.rand_direction = gGoalBox.rand_direction + 1;
 				gupgradeTextures[gnumUpgrades] = gthardGoal;
+				gupgradeRects[gnumUpgrades].w = gthardGoal_rect.w;
+				gupgradeRects[gnumUpgrades].h = gthardGoal_rect.h;
 				gnumUpgrades++;
 			}
 			if ((gLevel % 10) == 2 && gLevel > 10)
 			{
 				gupgradeTextures[gnumUpgrades] = gtfasterAI;
+				gupgradeRects[gnumUpgrades].w = gtfasterAI_rect.w;
+				gupgradeRects[gnumUpgrades].h = gtfasterAI_rect.h;
 				gnumUpgrades++;
 			}
 			if (gLevel == 10)
 			{
 				gupgradeTextures[gnumUpgrades] = gtyellowbox;
+				gupgradeRects[gnumUpgrades].w = gtyellowbox_rect.w;
+				gupgradeRects[gnumUpgrades].h = gtyellowbox_rect.h;
 				gnumUpgrades++;
 			}
 			for (i = 0; i < gnumUpgrades; i++)
 			{
-				SDL_QueryTexture(gupgradeTextures[i], NULL, NULL, &w, &h);
-				gupgradeRects[i].w = w;
-				gupgradeRects[i].h = h;
-				gupgradeRects[i].x = gPlayarea.x + gPlayarea.w / 2 - w / 2;
+				gupgradeRects[i].x = gPlayarea.x + gPlayarea.w / 2 - gupgradeRects[i].w / 2;
 				if (i == 0)
 					gupgradeRects[0].y = gcontinue_rect.y + gcontinue_rect.h + END_TEXT_SPACING;
 				else
@@ -645,10 +690,7 @@ void gameLogic(SDL_Renderer *r, bool isedgehit)
 
 			if (gtHitPoints != NULL)
 				SDL_DestroyTexture(gtHitPoints);
-			gtHitPoints = makeTextTexture(r, gSmallFont, "Hit Points:  ", TEXT_COLOR, BG_COLOR, SHADED);
-			SDL_QueryTexture(gtHitPoints, NULL, NULL, &w, &h);
-			gHitPoints_rect.w = w;
-			gHitPoints_rect.h = h;
+			gtHitPoints = makeTextTexture(r, STANDARD_SMALL, "Hit Points:  ", TEXT_COLOR, BG_COLOR, SHADED, &gHitPoints_rect);
 			gcontinue_rect.y = ggameover_rect.y + ggameover_rect.h + END_TEXT_SPACING; //adjust the continue rect to new location
 		}
 		else
@@ -664,10 +706,7 @@ void gameLogic(SDL_Renderer *r, bool isedgehit)
 			if (gtHitPoints != NULL)
 				SDL_DestroyTexture(gtHitPoints);
 			sprintf_s(buffer, sizeof(buffer), "Hit Points: %d", gHitPoints);
-			gtHitPoints = makeTextTexture(r, gSmallFont, buffer, TEXT_COLOR, BG_COLOR, SHADED);
-			SDL_QueryTexture(gtHitPoints, NULL, NULL, &w, &h);
-			gHitPoints_rect.w = w;
-			gHitPoints_rect.h = h;
+			gtHitPoints = makeTextTexture(r, STANDARD_SMALL, buffer, TEXT_COLOR, BG_COLOR, SHADED, &gHitPoints_rect);
 		}
 	}
 
@@ -739,7 +778,7 @@ void drawPlayArea(SDL_Renderer *r)
 	SDL_RenderCopy(r, gtHitPoints, NULL, &gHitPoints_rect);
 	SDL_RenderCopy(r, gtBoost, NULL, &gBoost_rect);
 	DrawBox(r, &gBoostmeter_rect, GREEN);
-	if (gBoostPool < MAX_BOOST) //draw the boost meeter depletion 
+	if (gBoostPool < MAX_BOOST) //draw the boost meter depletion 
 	{
 		gBoostdeplet_rect.w = (int)((MAX_BOOST - gBoostPool) / MAX_BOOST * 200);
 		gBoostdeplet_rect.x = gBoostmeter_rect.x + gBoostmeter_rect.w - 3 - gBoostdeplet_rect.w;
@@ -807,7 +846,6 @@ void updateGameTimer(SDL_Renderer *r)
 {
 	char buffer[40];
 	unsigned long int m1, s1, m2, s2, combine_t;
-	int w, h; 
 
 	if (gGameState == GAMEPLAY && !gPaused)
 	{
@@ -820,10 +858,7 @@ void updateGameTimer(SDL_Renderer *r)
 		if (gtTime != NULL)
 			SDL_DestroyTexture(gtTime);
 		sprintf_s(buffer, sizeof(buffer), "Time: %02d:%02d  /  %02d:%02d", m1, s1, m2, s2);
-		gtTime = makeTextTexture(r, gSmallFont, buffer, TEXT_COLOR, BG_COLOR, SHADED);
-		SDL_QueryTexture(gtTime, NULL, NULL, &w, &h);
-		gTime_rect.w = w;
-		gTime_rect.h = h;
+		gtTime = makeTextTexture(r, STANDARD_SMALL, buffer, TEXT_COLOR, BG_COLOR, SHADED, &gTime_rect);
 	}
 
 }

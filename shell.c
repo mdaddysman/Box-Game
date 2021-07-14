@@ -1380,7 +1380,7 @@ bool loadTextResources(SDL_Renderer *r)
 	sprintf_s(buffer, sizeof(buffer), "Version %d.%03d", BUILD_NUMBER / 1000, BUILD_NUMBER % 1000);
 	gtVersionText[0] = makeTextTexture(r, MENU_SMALL, buffer, TEXT_COLOR, BG_COLOR, BLENDED, &gVersion_rect[0]);
 	gtVersionText[1] = makeTextTexture(r, MENU_SMALL,
-		"Game Music Copyright 2017 by Brian Hicks", TEXT_COLOR, BG_COLOR, BLENDED, &gVersion_rect[1]);
+		"Gameplay Music Copyright 2017 by Brian Hicks", TEXT_COLOR, BG_COLOR, BLENDED, &gVersion_rect[1]);
 	gtVersionText[2] = makeTextTexture(r, MENU_SMALL,
 		"Game Code Copyright 2017-2021 under GNU GPLv3 by Matthew K. Daddysman", TEXT_COLOR, BG_COLOR, BLENDED, &gVersion_rect[2]);
 
